@@ -28,8 +28,9 @@ type FsValue = {
   arrayValue?: { values?: FsValue[] };
 };
 
+/** FIRESTORE_EMULATOR_HOST (e.g. 127.0.0.1:8085) points the server at the emulator for local testing. */
 const base = () =>
-  `https://firestore.googleapis.com/v1/projects/${firebaseProjectId()}/databases/${encodeURIComponent(firestoreDatabaseId())}/documents`;
+  `${process.env.FIRESTORE_EMULATOR_HOST ? `http://${process.env.FIRESTORE_EMULATOR_HOST}` : 'https://firestore.googleapis.com'}/v1/projects/${firebaseProjectId()}/databases/${encodeURIComponent(firestoreDatabaseId())}/documents`;
 
 const str = (v?: FsValue) => v?.stringValue ?? v?.timestampValue ?? '';
 

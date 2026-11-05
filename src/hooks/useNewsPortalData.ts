@@ -299,13 +299,14 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
     return () => unsubscribe();
   }, []);
 
-  // 4. Live subscription to Media Assets
+  // 4. Media library: newsroom only (readers never need the whole collection).
   useEffect(() => {
+    if (!isStaff) return;
     const unsubscribe = subscribeMediaAssets((syncedMedia) => {
       setMediaAssets(syncedMedia);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isStaff]);
 
   // 5. Live subscription to Live Blogs
   useEffect(() => {

@@ -703,7 +703,7 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-2xl sm:text-4xl font-black font-kd-header tracking-tight text-slate-900 leading-tight">
+            <h1 className="kd-static-title">
               {currentDef.title}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-kd-meta">

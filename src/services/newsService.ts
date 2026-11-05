@@ -46,6 +46,8 @@ const SETTINGS_COLLECTION = 'settings';
 const INQUIRIES_COLLECTION = 'inquiries';
 const MEDIA_COLLECTION = 'media';
 const LIVE_BLOGS_COLLECTION = 'live_blogs';
+/** How many of the newest published articles a reader's browser loads. */
+export const PUBLIC_ARTICLE_LIMIT = 60;
 
 /**
  * Fetch every article the signed-in user may read (used for staff backups). Throws on permission errors.
@@ -86,31 +88,47 @@ export function subscribeToArticles(
   onError?: (error: unknown) => void
 ) {
   const colRef = collection(db, ARTICLES_COLLECTION);
-  const q =
+  // Readers get the newest published articles only (each document is a billed read).
+  // Needs the composite index in firestore.indexes.json; until it is deployed we fall back to an
+  // unordered query so the site keeps working.
+  const ordered =
     scope === 'public'
-      ? query(colRef, where('status', '==', 'published'), limit(400))
+      ? query(colRef, where('status', '==', 'published'), orderBy('createdAt', 'desc'), limit(PUBLIC_ARTICLE_LIMIT))
+      : scope === 'all'
+        ? query(colRef, orderBy('createdAt', 'desc'), limit(1000))
+        : query(colRef, where('authorUid', '==', scope.authorUid), limit(500));
+  const fallback =
+    scope === 'public'
+      ? query(colRef, where('status', '==', 'published'), limit(PUBLIC_ARTICLE_LIMIT * 3))
       : scope === 'all'
         ? query(colRef, limit(1000))
-        : query(colRef, where('authorUid', '==', scope.authorUid), limit(500));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items: NewsArticle[] = [];
-      snapshot.forEach((docSnap) => {
-        items.push({ ...(docSnap.data() as NewsArticle), id: docSnap.id });
-      });
-      onArticles(items.length === 0 && scope === 'public' && DEMO_CONTENT ? INITIAL_NEWS : sortAndFilterArticles(items, 'all'));
-    },
-    (error) => {
-      onArticles(scope === 'public' && DEMO_CONTENT ? INITIAL_NEWS : []);
-      onError?.(error);
-      try {
-        handleFirestoreError(error, OperationType.LIST, ARTICLES_COLLECTION);
-      } catch {
-        // logged
+        : null;
+
+  let unsub = () => {};
+  const listen = (q: ReturnType<typeof query>, isFallback: boolean) => {
+    unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: NewsArticle[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({ ...(docSnap.data() as NewsArticle), id: docSnap.id });
+        });
+        const sorted = sortAndFilterArticles(items, 'all');
+        onArticles(items.length === 0 && scope === 'public' && DEMO_CONTENT ? INITIAL_NEWS : sorted);
+      },
+      (error: any) => {
+        if (!isFallback && fallback && error?.code === 'failed-precondition') {
+          listen(fallback, true);
+          return;
+        }
+        onArticles(scope === 'public' && DEMO_CONTENT ? INITIAL_NEWS : []);
+        onError?.(error);
+        console.warn('Articles could not be loaded:', error?.code || error);
       }
-    }
-  );
+    );
+  };
+  listen(ordered, false);
+  return () => unsub();
 }
 
 const withoutUndefined = <T extends Record<string, unknown>>(o: T): T => {
@@ -933,7 +951,7 @@ export function subscribeLiveBlogs(
 ): () => void {
   const colRef = collection(db, LIVE_BLOGS_COLLECTION);
   return onSnapshot(
-    colRef,
+    query(colRef, limit(20)),
     (snapshot) => {
       if (!snapshot.empty) {
         const remote = snapshot.docs.map((docSnap) => ({

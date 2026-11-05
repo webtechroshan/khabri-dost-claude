@@ -229,7 +229,7 @@ export const SubmitNewsPageView: React.FC<SubmitNewsPageViewProps> = ({
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-2xl sm:text-4xl font-black font-kd-header tracking-tight text-white leading-tight">
+            <h1 className="kd-static-title text-white">
               क्या आपके पास कोई बड़ी खबर या जनसमस्या है?
             </h1>
             <p className="text-sm sm:text-base text-amber-400 font-kd-headline font-bold">
