@@ -39,7 +39,7 @@
 | Unit tests | `npm test` | **82 passed** |
 | Firestore rules (emulator) | `npm run test:rules` | **15 passed** |
 | Production build | `npm run build` | Pass |
-| Browser matrix (15 pages × 14 widths, Chromium emulation, local server + emulator) | `npm run test:e2e` | see the final summary in the PR/hand-over message |
+| Browser matrix (15 pages × 14 widths, Chromium emulation, local server + emulator) | `npm run test:e2e` | **2,100 / 2,100 checks passed** |
 
 Browser checks per page and width: HTTP status (404 for unknown), no horizontal overflow, exactly one H1, phone
 header ≤ 100px, desktop header ≤ 160px, at most one fixed bottom bar on phones, no text under 12px (except the ad
