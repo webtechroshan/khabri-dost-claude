@@ -160,7 +160,7 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
                 alt={a.imageAltText || ''}
                 width={1200}
                 height={675}
-                {...({ fetchpriority: 'high' } as Record<string, string>)}
+                fetchPriority="high"
                 decoding="async"
               />
               {(a.imageCaption || a.imageCredit) && (

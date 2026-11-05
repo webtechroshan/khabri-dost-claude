@@ -70,4 +70,19 @@ for (const d of docs) {
   });
   if (!res.ok) throw new Error(`${d.id}: ${res.status} ${await res.text()}`);
 }
-console.log(`seeded ${docs.length} test articles into the emulator`);
+// Test newsroom members (emulator only; addresses use the reserved .test domain).
+const staff = [
+  { email: 'admin@example.test', name: 'Test Admin', role: 'super_admin' },
+  { email: 'editor@example.test', name: 'Test Editor', role: 'editor' },
+  { email: 'reporter@example.test', name: 'Test Reporter', role: 'reporter' },
+];
+for (const m of staff) {
+  const fields = Object.fromEntries(Object.entries({ ...m, status: 'active', joinedAt: new Date().toISOString(), articlesCount: 0 }).map(([k, val]) => [k, v(val)]));
+  const res = await fetch(`${base}/staff/${encodeURIComponent(m.email)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) throw new Error(`staff ${m.email}: ${res.status}`);
+}
+console.log(`seeded ${docs.length} test articles and ${staff.length} test staff into the emulator`);

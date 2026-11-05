@@ -88,7 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [staffRecord, setStaffRecord] = useState<EditorialUser | null>(null);
-  const [staffLoaded, setStaffLoaded] = useState(false);
+  /** Email whose staff record has been loaded (prevents a stale 'loaded' flag right after sign-in). */
+  const [staffLoadedFor, setStaffLoadedFor] = useState<string | null>(null);
   const [authLoaded, setAuthLoaded] = useState(false);
 
   useEffect(() => {
@@ -138,24 +139,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user?.email) {
       setStaffRecord(null);
-      setStaffLoaded(true);
+      setStaffLoadedFor(null);
       return;
     }
-    setStaffLoaded(false);
+    const email = user.email;
     return onSnapshot(
       doc(db, STAFF_COLLECTION, staffDocId(user.email)),
       (snap) => {
         setStaffRecord(snap.exists() ? ({ ...(snap.data() as EditorialUser), id: snap.id }) : null);
-        setStaffLoaded(true);
+        setStaffLoadedFor(email);
       },
       () => {
         setStaffRecord(null);
-        setStaffLoaded(true);
+        setStaffLoadedFor(email);
       }
     );
   }, [user?.email]);
 
-  const staffSession = user ? sessionFor(user, staffRecord) : null;
+  const staffSession = user && staffLoadedFor === user.email ? sessionFor(user, staffRecord) : null;
   const role = staffSession?.role;
   const isStaff = !!staffSession;
   const isEditor = isStaff && roleAllows(role, 'editor');
@@ -224,7 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isEditor,
         isAdmin,
         isReporter: isStaff,
-        loading: !authLoaded || (!!user && !staffLoaded),
+        loading: !authLoaded || (!!user && staffLoadedFor !== user.email),
         signInWithGoogle,
         loginAsStaffWithGoogle,
         logoutStaff: logout,

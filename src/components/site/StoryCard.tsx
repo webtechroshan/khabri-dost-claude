@@ -46,7 +46,7 @@ export const StoryCard: React.FC<Props> = ({
             width={variant === 'row' ? 140 : 640}
             height={variant === 'row' ? 105 : 360}
             loading={priority ? 'eager' : 'lazy'}
-            {...(priority ? { fetchpriority: 'high' } : {})}
+            fetchPriority={priority ? 'high' : 'auto'}
             decoding="async"
           />
           {a.videoUrl && <span className="kd-card__badge">वीडियो</span>}
