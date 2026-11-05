@@ -1,0 +1,73 @@
+{
+  "$schema-note": "Khabri Dost master design tokens (Phase 1 proposal). Light theme only. Values mirror docs/design-blueprint/visual/assets/blueprint.css.",
+  "meta": { "name": "Khabri Dost — Minimal Editorial", "version": "1.0.0-proposal", "date": "2026-11-05", "theme": "light-only" },
+  "color": {
+    "brand": { "primary": "#dc2626", "ink": "#b91c1c", "deep": "#991b1b", "tint": "#fef2f2", "line": "#fecaca",
+      "notes": "primary is the existing default brand colour. Use 'ink' for red text/links on white (AA). White text on 'primary' meets AA for 14px bold+ and 18px+." },
+    "neutral": { "page": "#ffffff", "canvas": "#f6f7f9", "surface": "#ffffff", "surface2": "#f8f9fb",
+      "ink": "#111418", "ink2": "#3f4651", "ink3": "#5f6875", "line": "#e3e6ea", "line2": "#cdd2d9" },
+    "status": {
+      "success": { "fg": "#067647", "bg": "#ecfdf3" },
+      "warning": { "fg": "#b54708", "bg": "#fffaeb" },
+      "danger":  { "fg": "#b42318", "bg": "#fef3f2" },
+      "info":    { "fg": "#175cd3", "bg": "#eff8ff" }
+    },
+    "focus": { "ring": "#175cd3", "ringWidth": "2px", "ringOffset": "2px" }
+  },
+  "font": {
+    "family": {
+      "hindi": "\"Noto Sans Devanagari\", \"Noto Sans\", system-ui, sans-serif",
+      "latin": "\"Noto Sans\", \"Noto Sans Devanagari\", system-ui, sans-serif",
+      "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    },
+    "weight": { "regular": 400, "medium": 500, "semibold": 600, "bold": 700 },
+    "loading": "Preload only the two families; weights 400, 600, 700; font-display: swap"
+  },
+  "type": {
+    "articleH1":     { "desktop": { "size": "36px", "lineHeight": 1.32 }, "mobile": { "size": "26px", "lineHeight": 1.36 }, "weight": 700 },
+    "articleDeck":   { "desktop": { "size": "20px", "lineHeight": 1.6 }, "mobile": { "size": "18px", "lineHeight": 1.6 }, "weight": 400 },
+    "articleBody":   { "desktop": { "size": "18px", "lineHeight": 1.85 }, "mobile": { "size": "17px", "lineHeight": 1.8 }, "weight": 400 },
+    "articleH2":     { "size": "24px", "lineHeight": 1.4, "weight": 700 },
+    "articleH3":     { "size": "20px", "lineHeight": 1.45, "weight": 700 },
+    "leadCardTitle": { "desktop": { "size": "32px", "lineHeight": 1.32 }, "mobile": { "size": "24px", "lineHeight": 1.36 }, "weight": 700 },
+    "cardTitle":     { "size": "17px", "lineHeight": 1.5, "weight": 600 },
+    "listTitle":     { "size": "16px", "lineHeight": 1.5, "weight": 600 },
+    "summary":       { "size": "15px", "lineHeight": 1.65, "weight": 400 },
+    "sectionHeading":{ "size": "20px", "lineHeight": 1.4, "weight": 700, "rule": "3px top border, brand primary" },
+    "staticPageTitle": { "size": "17px", "lineHeight": 1.5, "weight": 700, "element": "h1",
+      "notes": "Static/policy pages: semantic H1 styled small (16–17px, slightly bold); not the article H1 style." },
+    "kicker":        { "size": "13px", "lineHeight": 1.4, "weight": 600, "color": "brand.ink" },
+    "meta":          { "size": "13px", "lineHeight": 1.5, "weight": 400, "color": "neutral.ink3" },
+    "caption":       { "size": "13px", "lineHeight": 1.6, "weight": 400, "color": "neutral.ink3" },
+    "nav":           { "size": "15px", "lineHeight": 1.4, "weight": 600 },
+    "button":        { "size": "14px", "lineHeight": 1.2, "weight": 600 },
+    "adLabel":       { "size": "11px", "lineHeight": 1.3, "weight": 600, "notes": "Only text allowed below 12px." },
+    "minimum":       { "size": "12px", "notes": "No reader-facing text below 12px except the ad label." },
+    "devanagariFloors": { "headingLineHeight": 1.3, "bodyLineHeight": 1.6 }
+  },
+  "space": { "1": "4px", "2": "8px", "3": "12px", "4": "16px", "5": "20px", "6": "24px", "8": "32px", "10": "40px", "12": "48px" },
+  "radius": { "xs": "2px", "sm": "4px", "md": "6px", "lg": "8px", "pill": "999px", "notes": "8px is the maximum for cards and panels." },
+  "shadow": { "none": "none", "pop": "0 6px 18px rgba(17,20,24,.12)", "notes": "Shadows only for menus, dialogs, toasts. Cards use 1px lines." },
+  "layout": {
+    "container": "1280px",
+    "gutter": { "phone": "16px", "tablet": "24px", "desktop": "32px" },
+    "sidebar": "372px",
+    "sidebarRange": "370–390px",
+    "columnGap": "32px",
+    "mainColumn": "~812px at 1280",
+    "articleMeasure": "680px",
+    "breakpoints": { "phone": "0–767px", "tablet": "768–1023px", "desktop": "1024px+", "wide": "1440px+" },
+    "header": { "desktop": "~154px total (32 utility + 72 masthead + 48 nav + rule)", "phone": "~96px (56 top bar + 40 category scroller)",
+      "sticky": "desktop: category nav only; phone: 56px top bar only" },
+    "bottomBar": { "height": "56px + safe-area", "articlePages": "share bar replaces bottom nav" }
+  },
+  "ads": {
+    "sizes": ["300x250", "336x280", "300x600", "728x90", "970x250", "970x90", "320x50", "320x100", "350x(custom)"],
+    "custom350": "350px-wide creative is a custom direct-sale size, not a Google standard size; serve only from direct campaigns.",
+    "label": "विज्ञापन · Advertisement (11px)",
+    "reserveSpace": true
+  },
+  "motion": { "duration": { "fast": "120ms", "base": "180ms" }, "easing": "cubic-bezier(.2,.0,.0,1)", "reducedMotion": "disable non-essential motion" },
+  "zIndex": { "stickyNav": 30, "bottomBar": 40, "drawer": 50, "dialog": 60, "toast": 70 },
+  "touch": { "minTarget": "44px" }
+}

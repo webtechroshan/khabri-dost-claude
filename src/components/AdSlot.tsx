@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ExternalLink, AlertCircle, Sparkles } from 'lucide-react';
 import { AdResponsiveBreakpoints, AdSlotBreakpointSize } from '../types/news';
+import { AdCode } from './AdCode';
 
 export interface AdSlotProps {
   slotId: string;
@@ -77,7 +78,6 @@ export const AdSlot: React.FC<AdSlotProps> = ({
   const [adsenseFilled, setAdsenseFilled] = useState<boolean>(false);
   const [adsenseChecked, setAdsenseChecked] = useState<boolean>(false);
 
-  const scriptContainerRef = useRef<HTMLDivElement>(null);
   const adsenseRef = useRef<HTMLModElement>(null);
 
   // Resize listener for breakpoints
@@ -132,32 +132,12 @@ export const AdSlot: React.FC<AdSlotProps> = ({
     adsenseConfig.slotId.trim() !== ''
   );
 
-  // Observe Custom Script Execution & Rendering
   useEffect(() => {
-    if (!hasCustomCode || !scriptContainerRef.current) return;
-
-    try {
-      const container = scriptContainerRef.current;
-      // Execute any inline <script> tags present in customScriptOrHtml
-      const scripts = container.getElementsByTagName('script');
-      Array.from(scripts).forEach((oldScript) => {
-        const newScript = document.createElement('script');
-        Array.from(oldScript.attributes).forEach((attr) => {
-          newScript.setAttribute(attr.name, attr.value);
-        });
-        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-        oldScript.parentNode?.replaceChild(newScript, oldScript);
-      });
-
-      // Check if content or height is present
-      const hasContent = container.childNodes.length > 0;
-      setScriptRendered(hasContent);
-      if (hasContent && onLoaded) onLoaded();
-    } catch (e) {
-      setScriptRendered(false);
-      if (onError) onError(String(e));
+    if (hasCustomCode) {
+      setScriptRendered(true);
+      onLoaded?.();
     }
-  }, [hasCustomCode, customScriptOrHtml, onLoaded, onError]);
+  }, [hasCustomCode, onLoaded]);
 
   // Observe AdSense status
   useEffect(() => {
@@ -314,11 +294,10 @@ export const AdSlot: React.FC<AdSlotProps> = ({
 
       {/* 3. CASE B: CUSTOM HTML OR JAVASCRIPT ADVERTISEMENT */}
       {hasCustomCode && (
-        <div
-          ref={scriptContainerRef}
+        <AdCode
+          code={customScriptOrHtml || ''}
           style={containerStyle}
           className="p-3 sm:p-4 bg-white flex items-center justify-center min-h-[90px]"
-          dangerouslySetInnerHTML={{ __html: customScriptOrHtml || '' }}
         />
       )}
 

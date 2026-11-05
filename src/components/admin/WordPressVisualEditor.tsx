@@ -35,6 +35,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { MediaAsset } from '../../types/news';
+import { sanitizeArticleHtml } from '../../utils/sanitizeHtml';
 
 export interface WordPressVisualEditorProps {
   value: string;
@@ -283,7 +284,7 @@ export const WordPressVisualEditor: React.FC<WordPressVisualEditorProps> = ({
       if (editorMode === 'visual' && visualEditorRef.current) {
         // Only update if innerHTML actually differs to avoid resetting user's cursor
         if (visualEditorRef.current.innerHTML !== converted) {
-          visualEditorRef.current.innerHTML = converted;
+          visualEditorRef.current.innerHTML = sanitizeArticleHtml(converted);
         }
       }
     }
@@ -293,7 +294,7 @@ export const WordPressVisualEditor: React.FC<WordPressVisualEditorProps> = ({
   useEffect(() => {
     if (editorMode === 'visual' && visualEditorRef.current) {
       if (visualEditorRef.current.innerHTML !== htmlContent) {
-        visualEditorRef.current.innerHTML = htmlContent || '<p><br></p>';
+        visualEditorRef.current.innerHTML = sanitizeArticleHtml(htmlContent) || '<p><br></p>';
       }
     }
   }, [editorMode]);
@@ -376,7 +377,7 @@ export const WordPressVisualEditor: React.FC<WordPressVisualEditorProps> = ({
       onChange(converted);
       setTimeout(() => {
         if (visualEditorRef.current) {
-          visualEditorRef.current.innerHTML = converted || '<p><br></p>';
+          visualEditorRef.current.innerHTML = sanitizeArticleHtml(converted) || '<p><br></p>';
         }
       }, 10);
     }
@@ -397,7 +398,7 @@ export const WordPressVisualEditor: React.FC<WordPressVisualEditorProps> = ({
           const range = sel.getRangeAt(0);
           range.deleteContents();
           const el = document.createElement('div');
-          el.innerHTML = htmlSnippet;
+          el.innerHTML = sanitizeArticleHtml(htmlSnippet);
           const frag = document.createDocumentFragment();
           let node: Node | null;
           let lastNode: Node | null = null;

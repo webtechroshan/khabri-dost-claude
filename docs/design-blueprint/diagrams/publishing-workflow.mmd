@@ -1,0 +1,13 @@
+%% Proposed publishing workflow (status values already exist in src/types/news.ts L80)
+stateDiagram-v2
+  [*] --> draft: Reporter/Editor creates
+  draft --> pending_review: Reporter submits
+  pending_review --> draft: Editor returns with notes
+  pending_review --> scheduled: Editor sets scheduledFor
+  pending_review --> published: Editor publishes
+  draft --> published: Editor/Admin publishes directly
+  scheduled --> published: Server job at scheduledFor (proposed)
+  published --> published: Update (dateModified, revision saved)
+  published --> archived: Editor unpublishes
+  archived --> draft: Editor restores
+  archived --> [*]: Admin deletes

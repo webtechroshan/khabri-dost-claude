@@ -54,13 +54,14 @@ import {
 } from 'lucide-react';
 import { MediaAsset, NewsArticle, MediaFolder } from '../../types/news';
 import { DEFAULT_MEDIA_FOLDERS } from '../../data/portalDefaults';
+import { DEMO_CONTENT } from '../../utils/articleVisibility';
 import {
   compressImage,
   CompressionResult,
   formatBytes,
 } from '../../utils/imageCompressor';
 
-export const CURATED_NEWSROOM_STOCK = [
+const SAMPLE_STOCK = [
   {
     topic: 'ताज़ा ख़बरें',
     title: 'प्रेस कॉन्फ्रेंस एवं मीडिया ब्रीफिंग (Press Briefing)',
@@ -158,6 +159,9 @@ export const CURATED_NEWSROOM_STOCK = [
     caption: 'फोटो: डिजिटल इनोवेशन लैब',
   },
 ];
+
+/** Stock photos (with invented credits) are only offered in demo builds. Real photos are uploaded by the newsroom. */
+export const CURATED_NEWSROOM_STOCK = DEMO_CONTENT ? SAMPLE_STOCK : [];
 
 interface MediaLibraryTabProps {
   mediaAssets: MediaAsset[];

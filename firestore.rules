@@ -1,181 +1,227 @@
 rules_version = '2';
+
+// Khabri Dost security rules — the real security boundary.
+// Role lists must stay identical to src/utils/roles.ts (used by the app and the server).
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default Deny Catch-All
+
+    // ---------- Helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function changed() {
+      return incoming().diff(existing()).affectedKeys();
+    }
+    function validId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[A-Za-z0-9_-]+$');
+    }
+    function verifiedEmail() {
+      return signedIn() && request.auth.token.email is string && request.auth.token.email_verified == true;
+    }
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+    // Owner accounts (bootstrap). Everyone else is invited through the `staff` collection.
+    function isOwner() {
+      return verifiedEmail() && myEmail() in ['khabridost.com@gmail.com', 'khabaridost.com@gmail.com'];
+    }
+    function staffRecordPath() {
+      return /databases/$(database)/documents/staff/$(myEmail());
+    }
+    function staffRole() {
+      return get(staffRecordPath()).data.role;
+    }
+    function activeStaff() {
+      return verifiedEmail() && exists(staffRecordPath()) && get(staffRecordPath()).data.status == 'active';
+    }
+    function isAdmin() {
+      return isOwner() || (activeStaff() && staffRole() in ['super_admin']);
+    }
+    function isEditor() {
+      return isAdmin() || (activeStaff() && staffRole() in ['editor_in_chief', 'senior_editor', 'editor', 'sub_editor']);
+    }
+    function isStaff() {
+      return isEditor() || (activeStaff() && staffRole() in
+        ['reporter', 'journalist', 'contributor', 'fact_checker', 'seo_manager', 'analyst']);
+    }
+    function shortString(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // ---------- Default deny ----------
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+    // ---------- Articles ----------
+    function validArticle(d) {
+      return d.title is string && d.title.size() >= 3 && d.title.size() <= 300 &&
+             shortString(d.summary, 2000) &&
+             d.content is string && d.content.size() <= 300000 &&
+             shortString(d.category, 50) &&
+             shortString(d.authorName, 120) &&
+             shortString(d.authorUid, 128) &&
+             d.status in ['draft', 'pending_review', 'scheduled', 'published', 'archived'];
     }
-
-    function incoming() {
-      return request.resource.data;
+    // Reporters may only save drafts and submissions for review; publishing is for editors.
+    function reporterStatusOk(d) {
+      return d.status in ['draft', 'pending_review'];
     }
-
-    function existing() {
-      return resource.data;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // Server-side verified Administrator check (Exact email or verified admin record)
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email in [
-          'khabaridost.com@gmail.com',
-          'khabridost.com@gmail.com',
-          'admin@khabridost.com',
-          'contact@khabridost.com',
-          'editor@khabridost.com'
-        ] ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
-    }
-
-    // Server-side Editorial Staff check
-    function isStaff() {
-      return isSignedIn() && (
-        isAdmin() ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor', 'reporter', 'super_admin'])
-      );
-    }
-
-    // Articles validation
-    function isValidArticle(data) {
-      return data.title is string && data.title.size() >= 3 && data.title.size() <= 300 &&
-             data.summary is string && data.summary.size() <= 1000 &&
-             data.content is string && data.content.size() >= 10 && data.content.size() <= 50000 &&
-             data.category is string && data.category.size() <= 50 &&
-             data.authorName is string && data.authorName.size() <= 100 &&
-             data.authorUid is string && data.authorUid.size() <= 128;
-    }
-
     match /articles/{articleId} {
-      // Public read restricted to published articles; drafts & scheduled posts require staff/admin
-      allow read: if !('status' in resource.data) || resource.data.status == 'published' || isAdmin() || (isStaff() && resource.data.authorUid == request.auth.uid);
-      allow create: if isSignedIn() && isValidId(articleId) &&
-                       isValidArticle(incoming()) &&
-                       (isAdmin() || (isStaff() && incoming().authorUid == request.auth.uid));
-      allow update: if isValidId(articleId) && (
-        isAdmin() ||
-        (isStaff() && existing().authorUid == request.auth.uid && incoming().authorUid == existing().authorUid && isValidArticle(incoming())) ||
-        // Action: view count atomic increment (+1)
-        (incoming().diff(existing()).affectedKeys().hasOnly(['viewsCount']) && 
-         incoming().viewsCount is number && 
-         incoming().viewsCount == existing().viewsCount + 1) ||
-        // Action: like count increment/decrement (signed in readers)
-        (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['likesCount']) && 
-         incoming().likesCount is number && 
-         (incoming().likesCount == existing().likesCount + 1 || incoming().likesCount == existing().likesCount - 1)) ||
-        // Action: emoji reactions (signed in readers)
-        (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['reactions', 'likesCount']))
-      );
-      allow delete: if isValidId(articleId) && (isAdmin() || (isStaff() && existing().authorUid == request.auth.uid));
-    }
-
-    // Comments validation
-    function isValidComment(data) {
-      return data.articleId is string && data.articleId.size() <= 128 &&
-             data.authorUid is string && data.authorUid.size() <= 128 &&
-             data.authorName is string && data.authorName.size() <= 100 &&
-             data.content is string && data.content.size() >= 1 && data.content.size() <= 2000;
-    }
-
-    match /comments/{commentId} {
-      allow read: if true;
-      allow create: if isSignedIn() && isValidId(commentId) &&
-                       isValidComment(incoming()) &&
-                       incoming().authorUid == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(commentId) && (
-        isAdmin() ||
-        (existing().authorUid == request.auth.uid && incoming().authorUid == existing().authorUid && isValidComment(incoming())) ||
-        (incoming().diff(existing()).affectedKeys().hasOnly(['likesCount']) && incoming().likesCount is number)
-      );
-      allow delete: if isValidId(commentId) && (isAdmin() || (isSignedIn() && existing().authorUid == request.auth.uid));
-    }
-
-    // Bookmarks: Private to user
-    match /bookmarks/{bookmarkId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(bookmarkId) &&
-                       incoming().userId == request.auth.uid;
-      allow delete: if isSignedIn() && isValidId(bookmarkId) &&
-                       existing().userId == request.auth.uid;
-    }
-
-    // Read Later: Private to user
-    match /read_laters/{readLaterId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(readLaterId) &&
-                       incoming().userId == request.auth.uid;
-      allow delete: if isSignedIn() && isValidId(readLaterId) &&
-                       existing().userId == request.auth.uid;
-    }
-
-    // Connection test document
-    match /test/{docId} {
-      allow read: if true;
-    }
-
-    // User Profiles with Server-Side Privilege Escalation Protection
-    match /users/{userId} {
-      allow read: if true;
-      allow create: if isSignedIn() && isValidId(userId) && (
-        request.auth.uid == userId || isAdmin()
-      ) && (
-        !('role' in incoming()) || incoming().role == 'reader' || isAdmin()
-      );
-      allow update: if isSignedIn() && isValidId(userId) && (
-        isAdmin() ||
-        (request.auth.uid == userId && (
-          !incoming().diff(existing()).affectedKeys().hasAny(['role']) || isAdmin()
-        ))
+      allow get, list: if resource.data.status == 'published' ||
+                          isEditor() ||
+                          (isStaff() && resource.data.authorUid == request.auth.uid);
+      allow create: if validId(articleId) && validArticle(incoming()) && (
+                      isEditor() ||
+                      (isStaff() && incoming().authorUid == request.auth.uid && reporterStatusOk(incoming())));
+      allow update: if validId(articleId) && (
+        (isEditor() && validArticle(incoming())) ||
+        (isStaff() && existing().authorUid == request.auth.uid &&
+          incoming().authorUid == existing().authorUid &&
+          reporterStatusOk(existing()) && reporterStatusOk(incoming()) && validArticle(incoming())) ||
+        // Public counters on published articles: exactly +1 view, ±1 like, reactions map by signed-in readers.
+        (existing().status == 'published' && changed().hasOnly(['viewsCount']) &&
+          incoming().viewsCount == existing().get('viewsCount', 0) + 1) ||
+        (existing().status == 'published' && signedIn() && changed().hasOnly(['likesCount']) &&
+          (incoming().likesCount == existing().get('likesCount', 0) + 1 ||
+           incoming().likesCount == existing().get('likesCount', 0) - 1)) ||
+        (existing().status == 'published' && signedIn() && changed().hasOnly(['reactions']) &&
+          incoming().reactions is map && incoming().reactions.size() <= 12)
       );
       allow delete: if isAdmin();
     }
 
-    // Admins registry
-    match /admins/{adminId} {
-      allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isAdmin();
+    // ---------- Comments ----------
+    function validComment(d) {
+      return shortString(d.articleId, 128) && shortString(d.authorUid, 128) &&
+             shortString(d.authorName, 100) &&
+             d.content is string && d.content.size() >= 1 && d.content.size() <= 2000;
+    }
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if signedIn() && validId(commentId) && validComment(incoming()) &&
+                       incoming().authorUid == request.auth.uid;
+      allow update: if signedIn() && validId(commentId) && (
+        isEditor() ||
+        (existing().authorUid == request.auth.uid && incoming().authorUid == existing().authorUid && validComment(incoming())) ||
+        (changed().hasOnly(['likesCount']) &&
+          (incoming().likesCount == existing().get('likesCount', 0) + 1 ||
+           incoming().likesCount == existing().get('likesCount', 0) - 1))
+      );
+      allow delete: if validId(commentId) && (isEditor() || (signedIn() && existing().authorUid == request.auth.uid));
     }
 
-    // Portal Settings
+    // ---------- Reader lists (private) ----------
+    match /bookmarks/{id} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && validId(id) && incoming().userId == request.auth.uid;
+      allow delete: if signedIn() && validId(id) && existing().userId == request.auth.uid;
+    }
+    match /read_laters/{id} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && validId(id) && incoming().userId == request.auth.uid;
+      allow delete: if signedIn() && validId(id) && existing().userId == request.auth.uid;
+    }
+
+    // ---------- Reader profiles (private; roles live in `staff`) ----------
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn() && request.auth.uid == userId && validId(userId) &&
+                       (!('role' in incoming()) || incoming().role == 'reader');
+      allow update: if signedIn() && validId(userId) && (
+        isAdmin() ||
+        (request.auth.uid == userId && !changed().hasAny(['role', 'uid']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ---------- Newsroom staff (invites + roles), id = lower-cased email ----------
+    function validStaff(d, id) {
+      return d.email == id && shortString(d.name, 120) &&
+             d.role in ['super_admin', 'editor_in_chief', 'senior_editor', 'editor', 'sub_editor',
+                        'reporter', 'journalist', 'contributor', 'fact_checker', 'seo_manager', 'analyst'] &&
+             d.status in ['active', 'suspended', 'pending'] &&
+             !('accessPin' in d);
+    }
+    match /staff/{email} {
+      allow get: if isAdmin() || (verifiedEmail() && myEmail() == email);
+      allow list: if isAdmin();
+      // Administrators manage staff; only the owner accounts can create or change other administrators.
+      allow create, update: if isAdmin() && validStaff(incoming(), email) &&
+                               (incoming().role != 'super_admin' || isOwner()) &&
+                               (resource == null || existing().role != 'super_admin' || isOwner());
+      allow delete: if isAdmin() && (existing().role != 'super_admin' || isOwner());
+    }
+
+    // Legacy admin registry (read-only now; kept so old documents remain readable by their owner).
+    match /admins/{adminId} {
+      allow read: if signedIn() && (request.auth.uid == adminId || isAdmin());
+      allow write: if false;
+    }
+
+    // ---------- Site settings (public; never store secrets here) ----------
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && request.resource.data.size() < 400 &&
+                      !('geminiApiKey' in incoming()) && !('openaiApiKey' in incoming());
     }
 
-    // Newsletter Subscribers
+    // ---------- Newsletter subscribers ----------
     match /subscribers/{subscriberId} {
-      allow read: if isAdmin();
-      allow create: if isValidId(subscriberId);
-      allow update, delete: if isAdmin();
+      allow read, update, delete: if isAdmin();
+      allow create: if validId(subscriberId) &&
+                       incoming().email is string && incoming().email.size() <= 254 &&
+                       incoming().email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+                       incoming().keys().hasOnly(['id', 'email', 'name', 'status', 'source', 'subscribedAt', 'tags', 'preferredCategories']) &&
+                       incoming().status == 'active';
     }
 
-    // Media Assets
+    // ---------- Media ----------
     match /media/{mediaId} {
       allow read: if true;
-      allow write: if isAdmin() || isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isEditor();
     }
 
-    // Live Blogs & Real-Time Coverage
+    // ---------- Live coverage ----------
     match /live_blogs/{blogId} {
       allow read: if true;
-      allow write: if isAdmin() || isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isEditor();
     }
 
-    // Contact Inquiries
+    // ---------- Contact form ----------
     match /inquiries/{inquiryId} {
-      allow read: if isAdmin() || isStaff();
-      allow create: if isValidId(inquiryId);
-      allow update, delete: if isAdmin() || isStaff();
+      allow read, update, delete: if isEditor();
+      allow create: if validId(inquiryId) &&
+                       shortString(incoming().name, 120) &&
+                       shortString(incoming().email, 254) &&
+                       incoming().message is string && incoming().message.size() >= 1 && incoming().message.size() <= 5000 &&
+                       incoming().keys().size() <= 14;
+    }
+
+    // ---------- Reader news submissions ----------
+    match /submissions/{submissionId} {
+      allow read, update, delete: if isEditor();
+      // Anyone may send a news tip; editors review it. Images are small compressed data URLs or links.
+      allow create: if validId(submissionId) &&
+                       incoming().id == submissionId &&
+                       incoming().status == 'pending' &&
+                       incoming().title is string && incoming().title.size() >= 5 && incoming().title.size() <= 300 &&
+                       incoming().description is string && incoming().description.size() >= 10 && incoming().description.size() <= 20000 &&
+                       shortString(incoming().location, 200) &&
+                       shortString(incoming().category, 50) &&
+                       shortString(incoming().senderName, 120) &&
+                       incoming().images is list && incoming().images.size() <= 4 &&
+                       incoming().keys().hasOnly(['id', 'title', 'category', 'location', 'incidentDate', 'description',
+                         'images', 'videoUrl', 'senderName', 'senderPhone', 'senderEmail', 'isAnonymous',
+                         'submittedAt', 'status']);
     }
   }
 }
