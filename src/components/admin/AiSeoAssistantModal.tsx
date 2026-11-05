@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ApiConfiguration, NewsCategory } from '../../types/news';
 import { CATEGORIES } from '../../data/seedNews';
+import { authFetch } from '../../utils/authFetch';
 
 export interface DraftedSeoArticle {
   title: string;
@@ -84,7 +85,7 @@ export const AiSeoAssistantModal: React.FC<AiSeoAssistantModalProps> = ({
     try {
       if (currentContent.trim().length > 50 && (!topicPrompt || topicPrompt === currentTitle)) {
         // Optimize existing content
-        const res = await fetch('/api/ai/generate-seo-meta', {
+        const res = await authFetch('/api/ai/generate-seo-meta', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -116,7 +117,7 @@ export const AiSeoAssistantModal: React.FC<AiSeoAssistantModalProps> = ({
         }
       } else {
         // Draft new article & SEO
-        const res = await fetch('/api/ai/draft-article-seo', {
+        const res = await authFetch('/api/ai/draft-article-seo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

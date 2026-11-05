@@ -23,6 +23,8 @@ import {
   Link2,
 } from 'lucide-react';
 import { PortalSettings, NewsCategory } from '../types/news';
+import { submitCitizenNews } from '../services/newsService';
+import { compressImage } from '../utils/imageCompressor';
 import { DEFAULT_HEADER_FOOTER_SETTINGS } from '../data/portalDefaults';
 
 export interface CitizenNewsSubmission {
@@ -72,6 +74,7 @@ export const SubmitNewsPageView: React.FC<SubmitNewsPageViewProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Handle local image file selections (up to 3 images)
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,14 +95,16 @@ export const SubmitNewsPageView: React.FC<SubmitNewsPageViewProps> = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setImages((prev) => (prev.length < 3 ? [...prev, result] : prev));
-        }
-      };
-      reader.readAsDataURL(file);
+      // Shrink to ~1000px WebP so three photos fit in one Firestore document (1 MB limit).
+      compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.7 })
+        .then((r) => {
+          if (r.dataUrl.length > 280_000) {
+            alert(`फ़ाइल "${file.name}" बहुत बड़ी है। कृपया छोटी तस्वीर चुनें।`);
+            return;
+          }
+          setImages((prev) => (prev.length < 3 ? [...prev, r.dataUrl] : prev));
+        })
+        .catch(() => alert(`फ़ाइल "${file.name}" पढ़ी नहीं जा सकी।`));
     });
 
     e.target.value = '';
@@ -123,7 +128,8 @@ export const SubmitNewsPageView: React.FC<SubmitNewsPageViewProps> = ({
     }
 
     setIsSubmitting(true);
-    const ticketId = `NEWS-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const ticketId = `NEWS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    setSubmitError(null);
 
     const submission: CitizenNewsSubmission = {
       id: ticketId,
@@ -142,31 +148,22 @@ export const SubmitNewsPageView: React.FC<SubmitNewsPageViewProps> = ({
       status: 'pending',
     };
 
-    // Post to secure backend server endpoint
-    fetch('/api/citizen-news/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...submission,
-        honeypot,
-      }),
-    })
-      .catch((err) => console.warn('Backend sync failed, storing locally:', err))
-      .finally(() => {
-        // Save to localStorage as resilient offline store
-        try {
-          const saved = localStorage.getItem('kd_citizen_submissions');
-          const list = saved ? JSON.parse(saved) : [];
-          localStorage.setItem('kd_citizen_submissions', JSON.stringify([submission, ...list]));
-        } catch {}
-
-        if (onSubmitNews) {
-          onSubmitNews(submission);
-        }
-
-        setIsSubmitting(false);
+    if (honeypot) {
+      // Bots fill the hidden field; pretend success without storing anything.
+      setIsSubmitting(false);
+      setSubmittedTicket(ticketId);
+      return;
+    }
+    submitCitizenNews(submission)
+      .then(() => {
+        onSubmitNews?.(submission);
         setSubmittedTicket(ticketId);
-      });
+      })
+      .catch((err) => {
+        console.warn('Submission failed:', err);
+        setSubmitError('ख़बर भेजी नहीं जा सकी। कृपया इंटरनेट जांचें और दोबारा कोशिश करें।');
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   const handleReset = () => {
@@ -546,6 +543,11 @@ export const SubmitNewsPageView: React.FC<SubmitNewsPageViewProps> = ({
                 )}
               </div>
 
+              {submitError && (
+                <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {submitError}
+                </p>
+              )}
               {/* SUBMIT BUTTON */}
               <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
                 <button

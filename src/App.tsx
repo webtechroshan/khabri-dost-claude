@@ -43,7 +43,7 @@ import { AdminBackendPanel } from './components/AdminBackendPanel';
 
 // Types & Data
 import { NewsArticle, NewsCategory } from './types/news';
-import { CATEGORIES, MAJOR_INDIAN_STATES, ALL_INDIAN_STATES_BY_REGION, INITIAL_NEWS } from './data/seedNews';
+import { CATEGORIES, MAJOR_INDIAN_STATES, ALL_INDIAN_STATES_BY_REGION } from './data/seedNews';
 import { DEFAULT_SPOTLIGHT_LAYOUT } from './data/portalDefaults';
 
 // Icons & Utilities
@@ -58,7 +58,7 @@ import { resetRootCssVariablesToDefault } from './utils/cssDefaults';
  * Orchestrates views, navigation, elastic touch gestures, dynamic typography, and admin integration.
  */
 function NewsPortalMain() {
-  const { user, isStaff, isAdmin } = useAuth();
+  const { user, isStaff, isAdmin, isEditor } = useAuth();
   const [currentCategory, setCurrentCategory] = useState<NewsCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [userCity, setUserCity] = useState<string>(() => {
@@ -96,6 +96,7 @@ function NewsPortalMain() {
   // Extracted Data & Cloud Sync Hook
   const {
     articles,
+    staffArticles,
     setArticles,
     loading,
     bookmarks,
@@ -139,7 +140,7 @@ function NewsPortalMain() {
     handleSendNotification,
     handleSaveArticle,
     handleDeleteArticle,
-  } = useNewsPortalData({ user, isAdmin, isStaff, currentCategory });
+  } = useNewsPortalData({ user, isAdmin, isStaff, isEditor, currentCategory });
 
   // Open Admin Backend helper
   const openAdminStudio = (tab: string = 'dashboard') => {
@@ -536,7 +537,7 @@ function NewsPortalMain() {
       }
 
       if (targetArticleId) {
-        const found = articles.find((a) => a.id === targetArticleId) || INITIAL_NEWS.find((a) => a.id === targetArticleId);
+        const found = articles.find((a) => a.id === targetArticleId);
         if (found) {
           setActiveArticle(found);
           setCurrentView('article');
@@ -1396,7 +1397,7 @@ function NewsPortalMain() {
         <AdminBackendPanel
           initialTab={adminInitialTab}
           onClose={() => setShowAdminBackend(false)}
-          articles={articles}
+          articles={staffArticles}
           portalSettings={portalSettings}
           onUpdateSettings={handleUpdateSettings}
           onSaveArticle={handleSaveArticle}
@@ -1440,7 +1441,7 @@ function NewsPortalMain() {
       {showPublisherCMS && (
         <PublisherCMS
           onClose={() => setShowPublisherCMS(false)}
-          articles={articles}
+          articles={staffArticles}
           onArticlePublished={() => {}}
           onSelectArticleToView={(art) => handleSelectArticle(art)}
           apiConfig={portalSettings.apiConfig}

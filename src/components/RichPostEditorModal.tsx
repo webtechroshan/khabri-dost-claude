@@ -53,6 +53,7 @@ import { MediaManagerModal } from './MediaManagerModal';
 import { WordPressVisualEditor } from './admin/WordPressVisualEditor';
 import { renderArticleBlock } from '../utils/articleContentParser';
 import { compressImage } from '../utils/imageCompressor';
+import { authFetch } from '../utils/authFetch';
 
 interface RichPostEditorModalProps {
   article: Partial<NewsArticle> | null;
@@ -374,7 +375,7 @@ export const RichPostEditorModal: React.FC<RichPostEditorModalProps> = ({
           ? apiConfig?.openaiApiKey
           : apiConfig?.anthropicApiKey;
 
-      const res = await fetch('/api/ai/generate-seo-meta', {
+      const res = await authFetch('/api/ai/generate-seo-meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

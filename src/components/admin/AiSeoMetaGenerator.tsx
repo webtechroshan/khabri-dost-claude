@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, RefreshCw, Check, AlertCircle, FileText, Lightbulb, CheckCircle2, Tag, List, Link } from 'lucide-react';
 import { ApiConfiguration } from '../../types/news';
+import { authFetch } from '../../utils/authFetch';
 
 interface AiSeoMetaResult {
   metaTitle: string;
@@ -68,7 +69,7 @@ export const AiSeoMetaGenerator: React.FC<AiSeoMetaGeneratorProps> = ({
           ? apiConfig?.openaiApiKey
           : apiConfig?.anthropicApiKey;
 
-      const response = await fetch('/api/ai/generate-seo-meta', {
+      const response = await authFetch('/api/ai/generate-seo-meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

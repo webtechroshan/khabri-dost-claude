@@ -18,6 +18,7 @@ import { NewsCategory, PortalSettings, FooterBannerAdConfig } from '../types/new
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_HEADER_FOOTER_SETTINGS, DEFAULT_FOOTER_BANNER_AD_CONFIG } from '../data/portalDefaults';
 import { LegalPolicyType } from './LegalPolicyPageView';
+import { AdCode } from './AdCode';
 
 interface FooterProps {
   onSelectCategory: (cat: NewsCategory) => void;
@@ -840,9 +841,9 @@ export const Footer: React.FC<FooterProps> = ({
 
                   {/* Ad Content: Custom Script/HTML or Linked Responsive Banner */}
                   {footerAd.type === 'script' && footerAd.scriptCode ? (
-                    <div
+                    <AdCode
+                      code={footerAd.scriptCode}
                       className="flex-1 min-w-0 p-2 sm:p-3 bg-slate-50 text-slate-800 flex justify-center items-center overflow-hidden min-h-[50px] sm:min-h-[80px]"
-                      dangerouslySetInnerHTML={{ __html: footerAd.scriptCode }}
                     />
                   ) : (
                     <a

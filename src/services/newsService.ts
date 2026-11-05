@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
   onSnapshot,
+  increment,
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import {
@@ -26,8 +27,11 @@ import {
   MediaAsset,
   LiveBlogEvent,
   CitizenNewsSubmission,
+  EditorialUser,
 } from '../types/news';
+import { staffDocId } from '../utils/roles';
 import { INITIAL_NEWS } from '../data/seedNews';
+import { DEMO_CONTENT } from '../utils/articleVisibility';
 import {
   DEFAULT_PORTAL_SETTINGS,
   INITIAL_MEDIA_ASSETS,
@@ -44,57 +48,15 @@ const MEDIA_COLLECTION = 'media';
 const LIVE_BLOGS_COLLECTION = 'live_blogs';
 
 /**
- * Seed initial articles if the collection is empty AND user is authenticated.
- */
-export async function seedInitialArticlesIfEmpty(): Promise<NewsArticle[]> {
-  try {
-    const q = query(collection(db, ARTICLES_COLLECTION), limit(1));
-    const snap = await getDocs(q);
-    
-    // Only attempt to write seed data if user is logged in (as required by Firestore rules)
-    if (snap.empty && auth.currentUser) {
-      const seeded: NewsArticle[] = [];
-      for (const item of INITIAL_NEWS) {
-        const articleRef = doc(db, ARTICLES_COLLECTION, item.id);
-        const articlePayload: NewsArticle = {
-          ...item,
-          authorUid: auth.currentUser.uid,
-          authorEmail: auth.currentUser.email || item.authorEmail || 'khabridost.com@gmail.com',
-        };
-        await setDoc(articleRef, articlePayload);
-        seeded.push(articlePayload);
-      }
-      return seeded;
-    }
-    return snap.empty ? INITIAL_NEWS : [];
-  } catch (error) {
-    // If not authenticated or error, return INITIAL_NEWS in memory so portal always renders cleanly
-    return INITIAL_NEWS;
-  }
-}
-
-/**
- * Fetch all articles or by category.
+ * Fetch every article the signed-in user may read (used for staff backups). Throws on permission errors.
  */
 export async function fetchArticles(category: NewsCategory = 'all'): Promise<NewsArticle[]> {
-  try {
-    const colRef = collection(db, ARTICLES_COLLECTION);
-    const snap = await getDocs(colRef);
-    
-    if (snap.empty) {
-      return sortAndFilterArticles(INITIAL_NEWS, category);
-    }
-
-    const items: NewsArticle[] = [];
-    snap.forEach(docSnap => {
-      items.push(docSnap.data() as NewsArticle);
-    });
-
-    return sortAndFilterArticles(items, category);
-  } catch (error) {
-    // If permission or network issue, fallback to INITIAL_NEWS
-    return sortAndFilterArticles(INITIAL_NEWS, category);
-  }
+  const snap = await getDocs(query(collection(db, ARTICLES_COLLECTION), limit(5000)));
+  const items: NewsArticle[] = [];
+  snap.forEach((docSnap) => {
+    items.push({ ...(docSnap.data() as NewsArticle), id: docSnap.id });
+  });
+  return sortAndFilterArticles(items, category);
 }
 
 function sortAndFilterArticles(items: NewsArticle[], category: NewsCategory): NewsArticle[] {
@@ -109,57 +71,78 @@ function sortAndFilterArticles(items: NewsArticle[], category: NewsCategory): Ne
 /**
  * Subscribe to real-time articles updates.
  */
+export type ArticleScope = 'public' | 'all' | { authorUid: string };
+
+/**
+ * Subscribe to articles. Every query is shaped so Firestore rules can allow it:
+ * - 'public': published articles only (what readers see)
+ * - 'all': every article (editors and administrators)
+ * - { authorUid }: one author's own articles (reporters)
+ * Sample articles are used only in demo builds.
+ */
 export function subscribeToArticles(
   onArticles: (articles: NewsArticle[]) => void,
-  category: NewsCategory = 'all'
+  scope: ArticleScope = 'public',
+  onError?: (error: unknown) => void
 ) {
   const colRef = collection(db, ARTICLES_COLLECTION);
+  const q =
+    scope === 'public'
+      ? query(colRef, where('status', '==', 'published'), limit(400))
+      : scope === 'all'
+        ? query(colRef, limit(1000))
+        : query(colRef, where('authorUid', '==', scope.authorUid), limit(500));
   return onSnapshot(
-    colRef,
+    q,
     (snapshot) => {
       const items: NewsArticle[] = [];
-      snapshot.forEach(docSnap => {
-        items.push(docSnap.data() as NewsArticle);
+      snapshot.forEach((docSnap) => {
+        items.push({ ...(docSnap.data() as NewsArticle), id: docSnap.id });
       });
-      if (items.length === 0) {
-        onArticles(sortAndFilterArticles(INITIAL_NEWS, category));
-      } else {
-        onArticles(sortAndFilterArticles(items, category));
-      }
+      onArticles(items.length === 0 && scope === 'public' && DEMO_CONTENT ? INITIAL_NEWS : sortAndFilterArticles(items, 'all'));
     },
     (error) => {
-      onArticles(sortAndFilterArticles(INITIAL_NEWS, category));
+      onArticles(scope === 'public' && DEMO_CONTENT ? INITIAL_NEWS : []);
+      onError?.(error);
       try {
         handleFirestoreError(error, OperationType.LIST, ARTICLES_COLLECTION);
       } catch {
-        // gracefully logged
+        // logged
       }
     }
   );
 }
 
+const withoutUndefined = <T extends Record<string, unknown>>(o: T): T => {
+  const copy = { ...o };
+  for (const k of Object.keys(copy)) if (copy[k] === undefined) delete copy[k];
+  return copy;
+};
+
 /**
- * Create a new article.
+ * Create a new article. Requires a signed-in newsroom member; the author is always the signed-in user
+ * unless an editor sets a byline name. New articles default to `draft`.
  */
 export async function publishArticle(data: Omit<NewsArticle, 'id' | 'viewsCount' | 'likesCount' | 'createdAt'>): Promise<NewsArticle> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error('Please sign in to the newsroom first.');
   const newId = 'art_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
   const now = new Date().toISOString();
-  const currentUser = auth.currentUser;
-  const article: NewsArticle = {
+  const article: NewsArticle = withoutUndefined({
     ...data,
+    status: data.status || 'draft',
     id: newId,
-    authorUid: currentUser?.uid || data.authorUid || 'admin_super_01',
-    authorEmail: currentUser?.email || data.authorEmail || 'khabridost.com@gmail.com',
-    authorName: data.authorName || currentUser?.displayName || 'मुख्य व्यवस्थापक',
-    viewsCount: 1,
+    authorUid: currentUser.uid,
+    authorEmail: currentUser.email || '',
+    authorName: data.authorName || currentUser.displayName || '',
+    viewsCount: 0,
     likesCount: 0,
     createdAt: now,
     updatedAt: now,
-  };
+  } as NewsArticle & Record<string, unknown>);
 
   try {
-    const docRef = doc(db, ARTICLES_COLLECTION, newId);
-    await setDoc(docRef, article);
+    await setDoc(doc(db, ARTICLES_COLLECTION, newId), article);
     return article;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `${ARTICLES_COLLECTION}/${newId}`);
@@ -171,10 +154,10 @@ export async function publishArticle(data: Omit<NewsArticle, 'id' | 'viewsCount'
  * Update an existing article.
  */
 export async function updateArticle(articleId: string, updates: Partial<NewsArticle>): Promise<void> {
+  const { id: _id, viewsCount: _v, likesCount: _l, ...rest } = updates;
   try {
-    const docRef = doc(db, ARTICLES_COLLECTION, articleId);
-    await updateDoc(docRef, {
-      ...updates,
+    await updateDoc(doc(db, ARTICLES_COLLECTION, articleId), {
+      ...withoutUndefined(rest as Record<string, unknown>),
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -202,9 +185,7 @@ export async function deleteArticle(articleId: string): Promise<void> {
 export async function incrementArticleViews(articleId: string, currentViews: number = 0): Promise<void> {
   try {
     const docRef = doc(db, ARTICLES_COLLECTION, articleId);
-    await updateDoc(docRef, {
-      viewsCount: (currentViews || 0) + 1,
-    });
+    await updateDoc(docRef, { viewsCount: increment(1) });
   } catch (error) {
     // Silently ignore or report error
     console.warn('Could not increment view count', error);
@@ -1154,7 +1135,7 @@ export async function generatePortalBackupData(exportedBy = 'Super Admin'): Prom
   try {
     articles = await fetchArticles('all');
   } catch {
-    articles = INITIAL_NEWS;
+    articles = [];
   }
 
   // 2. Settings
@@ -1365,3 +1346,83 @@ export async function restorePortalBackupData(
   };
 }
 
+
+/* ------------------------------------------------------------------
+ * Newsroom staff (Users & roles). Document id = lower-cased email.
+ * Only administrators can list or change these records (firestore.rules).
+ * ------------------------------------------------------------------ */
+const STAFF_COLLECTION = 'staff';
+
+export function subscribeStaff(onStaff: (users: EditorialUser[]) => void, onError?: (e: unknown) => void) {
+  return onSnapshot(
+    collection(db, STAFF_COLLECTION),
+    (snap) => {
+      const items: EditorialUser[] = [];
+      snap.forEach((d) => items.push({ ...(d.data() as EditorialUser), id: d.id }));
+      onStaff(items.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+    },
+    (error) => {
+      onStaff([]);
+      onError?.(error);
+    }
+  );
+}
+
+/** Create or update a staff record. Strips fields that must never be stored (PINs, photos as data URLs). */
+export async function saveStaffMember(user: Partial<EditorialUser> & { email: string }): Promise<string> {
+  const id = staffDocId(user.email);
+  const { accessPin: _pin, id: _id, ...rest } = user as EditorialUser;
+  const record: Record<string, unknown> = {
+    ...rest,
+    email: id,
+    updatedAt: new Date().toISOString(),
+  };
+  if (typeof record.photoURL === 'string' && (record.photoURL as string).startsWith('data:')) delete record.photoURL;
+  for (const k of Object.keys(record)) if (record[k] === undefined) delete record[k];
+  await setDoc(doc(db, STAFF_COLLECTION, id), record, { merge: true });
+  return id;
+}
+
+export async function deleteStaffMember(id: string): Promise<void> {
+  await deleteDoc(doc(db, STAFF_COLLECTION, id));
+}
+
+/* ------------------------------------------------------------------
+ * Reader news submissions (public create, validated by rules; editors read).
+ * ------------------------------------------------------------------ */
+const SUBMISSIONS_COLLECTION = 'submissions';
+
+export async function submitCitizenNews(sub: CitizenNewsSubmission): Promise<void> {
+  const record: Record<string, unknown> = { ...sub, status: 'pending' };
+  for (const k of Object.keys(record)) if (record[k] === undefined) delete record[k];
+  await setDoc(doc(db, SUBMISSIONS_COLLECTION, sub.id), record);
+}
+
+export function subscribeSubmissions(onItems: (items: CitizenNewsSubmission[]) => void) {
+  return onSnapshot(
+    collection(db, SUBMISSIONS_COLLECTION),
+    (snap) => {
+      const items: CitizenNewsSubmission[] = [];
+      snap.forEach((d) => items.push({ ...(d.data() as CitizenNewsSubmission), id: d.id }));
+      onItems(items.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || '')));
+    },
+    () => onItems([])
+  );
+}
+
+export async function fetchSubmissions(): Promise<CitizenNewsSubmission[]> {
+  const snap = await getDocs(query(collection(db, SUBMISSIONS_COLLECTION), limit(500)));
+  const items: CitizenNewsSubmission[] = [];
+  snap.forEach((d) => items.push({ ...(d.data() as CitizenNewsSubmission), id: d.id }));
+  return items.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+}
+
+export async function updateSubmission(id: string, patch: Partial<CitizenNewsSubmission>): Promise<void> {
+  const clean: Record<string, unknown> = { ...patch };
+  for (const k of Object.keys(clean)) if (clean[k] === undefined) delete clean[k];
+  await updateDoc(doc(db, SUBMISSIONS_COLLECTION, id), clean);
+}
+
+export async function deleteSubmission(id: string): Promise<void> {
+  await deleteDoc(doc(db, SUBMISSIONS_COLLECTION, id));
+}

@@ -25,6 +25,7 @@ import { EPaperEditionRecord } from '../../types/epaper';
 import { DEFAULT_EPAPER_SETTINGS } from '../../data/portalDefaults';
 import { getKolkataDateString, formatHindiNewspaperDate } from '../../utils/epaperEngine';
 import { EPaperReader } from '../EPaperReader';
+import { authFetch } from '../../utils/authFetch';
 
 interface EPaperSettingsTabProps {
   settings: PortalSettings;
@@ -121,7 +122,7 @@ export const EPaperSettingsTab: React.FC<EPaperSettingsTabProps> = ({
       });
 
       // 3. Post to server endpoint
-      const res = await fetch('/api/epaper/upload-pdf', {
+      const res = await authFetch('/api/epaper/upload-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

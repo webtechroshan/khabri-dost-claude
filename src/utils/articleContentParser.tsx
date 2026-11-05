@@ -9,6 +9,7 @@ import {
   Sparkles,
   ShieldAlert,
 } from 'lucide-react';
+import { sanitizeArticleHtml } from './sanitizeHtml';
 
 /**
  * Extracts YouTube video ID from various YouTube URL formats
@@ -481,21 +482,8 @@ export function renderArticleBlock(
   );
 }
 
-/**
- * Strips dangerous tags and attributes from HTML before rendering on public articles.
- */
-export function sanitizeEditorialHtml(html: string): string {
-  if (!html) return '';
-  return html
-    // Strip script and iframe tags (except safe embeds handled separately)
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    // Strip javascript: URLs
-    .replace(/href\s*=\s*['"]javascript:[^'"]*['"]/gi, 'href="#"')
-    // Strip inline event listeners (onclick, onerror, onload, etc.)
-    .replace(/\s+on[a-zA-Z]+\s*=\s*(['"]).*?\1/gi, '')
-    .replace(/\s+on[a-zA-Z]+\s*=\s*[^ >]+/gi, '');
-}
+/** @deprecated use sanitizeArticleHtml from ./sanitizeHtml (kept as an alias for older imports). */
+export const sanitizeEditorialHtml = sanitizeArticleHtml;
 
 /**
  * Splits article content intelligently into renderable blocks.

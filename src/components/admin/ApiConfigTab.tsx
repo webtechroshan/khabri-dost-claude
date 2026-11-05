@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { ApiConfiguration } from '../../types/news';
+import { authFetch } from '../../utils/authFetch';
 
 interface ApiConfigTabProps {
   apiConfig?: ApiConfiguration;
@@ -79,7 +80,7 @@ export const ApiConfigTab: React.FC<ApiConfigTabProps> = ({ apiConfig, onSave })
     }));
 
     try {
-      const res = await fetch('/api/admin/validate-key', {
+      const res = await authFetch('/api/admin/validate-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

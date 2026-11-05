@@ -43,6 +43,8 @@ import { MediaManagerModal } from './MediaManagerModal';
 import { WordPressVisualEditor } from './admin/WordPressVisualEditor';
 import { compressImage } from '../utils/imageCompressor';
 import { slugifyHindiText } from '../utils/hindiHelpers';
+import { authFetch } from '../utils/authFetch';
+import { fetchSubmissions } from '../services/newsService';
 
 interface PublisherCMSProps {
   onClose: () => void;
@@ -264,7 +266,7 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
   const handleGenerateAiImage = async () => {
     setIsGeneratingAiImage(true);
     try {
-      const res = await fetch('/api/ai/generate-news-image', {
+      const res = await authFetch('/api/ai/generate-news-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +325,7 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
           ? apiConfig?.openaiApiKey
           : apiConfig?.anthropicApiKey;
 
-      const res = await fetch('/api/ai/generate-seo-meta', {
+      const res = await authFetch('/api/ai/generate-seo-meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -369,7 +371,7 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
   const loadGoogleTrends = async () => {
     setLoadingTrends(true);
     try {
-      const res = await fetch('/api/ai/google-trends');
+      const res = await authFetch('/api/ai/google-trends');
       const data = await res.json();
       if (data?.trends) {
         setTrends(data.trends);
@@ -385,7 +387,7 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
   const handleGenerateTrendArticle = async (trendItem: any, autoPublish = false) => {
     setGeneratingTrendId(trendItem.id);
     try {
-      const res = await fetch('/api/ai/generate-trend-article', {
+      const res = await authFetch('/api/ai/generate-trend-article', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -445,27 +447,11 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
 
   // 3. Citizen Submissions Loader
   const loadCitizenSubmissions = async () => {
-    let localList: any[] = [];
     try {
-      const saved = localStorage.getItem('kd_citizen_submissions');
-      if (saved) localList = JSON.parse(saved);
-    } catch {}
-
-    try {
-      const res = await fetch('/api/citizen-news/list');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.submissions)) {
-        // Merge and deduplicate by id
-        const mergedMap = new Map();
-        [...data.submissions, ...localList].forEach((item) => {
-          if (item && item.id) mergedMap.set(item.id, item);
-        });
-        setCitizenSubmissions(Array.from(mergedMap.values()));
-        return;
-      }
-    } catch {}
-
-    setCitizenSubmissions(localList);
+      setCitizenSubmissions(await fetchSubmissions());
+    } catch {
+      setCitizenSubmissions([]);
+    }
   };
 
   const handleLoadCitizenSubmission = (sub: any) => {
@@ -501,7 +487,7 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
         imageUrl: IMAGE_PRESETS[0].url,
         authorName: 'सिस्टम बॉट',
       };
-      const res = await fetch('/api/social/webhook-dispatch', {
+      const res = await authFetch('/api/social/webhook-dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

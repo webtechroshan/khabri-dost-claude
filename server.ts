@@ -4,7 +4,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
-import { INITIAL_NEWS } from './src/data/seedNews';
+import { requireRole } from './server/auth';
+import { registerSeoRoutes, resolvePage, renderHead, injectHead } from './server/seo';
 
 dotenv.config();
 
@@ -69,8 +70,10 @@ const apiRateLimiter = (maxRequests = 60, windowMs = 60000) => {
 
 app.use('/api/', apiRateLimiter(80, 60000));
 
-app.use(express.json({ limit: '60mb' }));
-app.use(express.urlencoded({ extended: true, limit: '60mb' }));
+// Large bodies only for the e-paper PDF upload; everything else is small.
+app.use('/api/epaper/upload-pdf', express.json({ limit: '60mb' }));
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Sanitize user inputs to prevent XSS / script injection attacks
 function sanitizeString(input: string): string {
@@ -82,24 +85,6 @@ function sanitizeString(input: string): string {
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
     .trim();
 }
-
-// In-memory Citizen News Store for review desk
-const citizenSubmissionsStore: Array<{
-  id: string;
-  title: string;
-  category: string;
-  location: string;
-  incidentDate: string;
-  description: string;
-  images: string[];
-  videoUrl?: string;
-  senderName: string;
-  senderPhone?: string;
-  senderEmail?: string;
-  isAnonymous: boolean;
-  submittedAt: string;
-  status: 'pending' | 'verified' | 'rejected' | 'published';
-}> = [];
 
 // Initialize GoogleGenAI SDK per gemini-api guidelines
 const apiKey = process.env.GEMINI_API_KEY;
@@ -184,7 +169,7 @@ function generateFallbackSeo(content: string, title?: string, category?: string)
 }
 
 // POST /api/ai/generate-seo-meta - AI SEO Meta Title, Slug, Description, Tags & Highlights Generator
-app.post('/api/ai/generate-seo-meta', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/ai/generate-seo-meta', requireRole('staff'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { content, title, category, customApiKey, provider } = req.body;
 
@@ -334,7 +319,7 @@ function generateFallbackQuickRead(title: string, content: string): string[] {
 }
 
 // POST /api/ai/quick-read - AI 3-Bullet Point Quick Read Summary Generator (Gemini 3.8 Flash)
-app.post('/api/ai/quick-read', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/ai/quick-read', apiRateLimiter(10, 60000), async (req: Request, res: Response): Promise<void> => {
   try {
     const { articleId, title, content, summary, category } = req.body;
 
@@ -415,7 +400,7 @@ Return valid JSON conforming to:
 });
 
 // POST /api/admin/validate-key - Validate API keys (Gemini, OpenAI, Anthropic, Google Trends)
-app.post('/api/admin/validate-key', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/admin/validate-key', requireRole('admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { provider, apiKey: rawKey } = req.body;
     const testKey = typeof rawKey === 'string' ? rawKey.trim() : '';
@@ -574,7 +559,7 @@ app.post('/api/admin/validate-key', async (req: Request, res: Response): Promise
 });
 
 // POST /api/ai/draft-article-seo - Complete Article & SEO Drafter with manual review & refine capability
-app.post('/api/ai/draft-article-seo', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/ai/draft-article-seo', requireRole('staff'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { topic, category, keyPoints, userAngle, customApiKey, provider } = req.body;
 
@@ -822,7 +807,7 @@ const GOOGLE_TRENDS_DATA = [
 ];
 
 // GET /api/ai/google-trends - Get Real-time Trending Topics for News Auto-Generation
-app.get('/api/ai/google-trends', (req: Request, res: Response) => {
+app.get('/api/ai/google-trends', requireRole('staff'), (req: Request, res: Response) => {
   const { category, region } = req.query;
   let filtered = [...GOOGLE_TRENDS_DATA];
 
@@ -841,7 +826,7 @@ app.get('/api/ai/google-trends', (req: Request, res: Response) => {
 });
 
 // POST /api/ai/generate-trend-article - 100% Human-style Natural Hindi News Writer using Gemini
-app.post('/api/ai/generate-trend-article', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/ai/generate-trend-article', requireRole('editor'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { topic, category, keyPoints, userAngle } = req.body;
 
@@ -969,7 +954,7 @@ function isSafeExternalUrl(urlStr: string): boolean {
 }
 
 // POST /api/social/webhook-dispatch - Auto-Share webhook for Zapier, Buffer, Telegram, Make.com
-app.post('/api/social/webhook-dispatch', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/social/webhook-dispatch', requireRole('editor'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { webhookUrl, article, channel } = req.body;
 
@@ -1022,106 +1007,10 @@ app.post('/api/social/webhook-dispatch', async (req: Request, res: Response): Pr
   }
 });
 
-// POST /api/citizen-news/submit - Secure Citizen Journalism Submission endpoint with Honeypot anti-spam
-app.post('/api/citizen-news/submit', (req: Request, res: Response): void => {
-  try {
-    const {
-      title,
-      category,
-      location,
-      incidentDate,
-      description,
-      images,
-      videoUrl,
-      senderName,
-      senderPhone,
-      senderEmail,
-      isAnonymous,
-      honeypot, // Hidden bot trap field
-    } = req.body;
-
-    // Honeypot spam bot check: if bot filled hidden field, reject quietly
-    if (honeypot && String(honeypot).trim().length > 0) {
-      res.json({ success: true, message: 'Received' });
-      return;
-    }
-
-    if (!title || !description || !location) {
-      res.status(400).json({ error: 'Title, location, and description are required.' });
-      return;
-    }
-
-    // Sanitize all textual fields against XSS/injections
-    const sanitizedTitle = sanitizeString(String(title)).slice(0, 150);
-    const sanitizedLocation = sanitizeString(String(location)).slice(0, 100);
-    const sanitizedDescription = sanitizeString(String(description)).slice(0, 5000);
-    const sanitizedSenderName = sanitizeString(String(senderName || '')).slice(0, 80);
-    const sanitizedSenderPhone = sanitizeString(String(senderPhone || '')).slice(0, 30);
-    const sanitizedSenderEmail = sanitizeString(String(senderEmail || '')).slice(0, 80);
-    const sanitizedVideoUrl = sanitizeString(String(videoUrl || '')).slice(0, 500);
-
-    // Filter valid image URLs (max 3)
-    const validImages: string[] = Array.isArray(images)
-      ? images.slice(0, 3).filter((img: any) => typeof img === 'string')
-      : [];
-
-    const ticketId = `NEWS-2026-${Math.floor(100000 + Math.random() * 900000)}`;
-    const submission = {
-      id: ticketId,
-      title: sanitizedTitle,
-      category: sanitizeString(String(category || 'national')),
-      location: sanitizedLocation,
-      incidentDate: sanitizeString(String(incidentDate || new Date().toISOString().split('T')[0])),
-      description: sanitizedDescription,
-      images: validImages,
-      videoUrl: sanitizedVideoUrl || undefined,
-      senderName: isAnonymous ? 'गोपनीय पाठक (व्हिसलब्लोअर)' : (sanitizedSenderName || 'नागरिक पत्रकार'),
-      senderPhone: sanitizedSenderPhone || undefined,
-      senderEmail: sanitizedSenderEmail || undefined,
-      isAnonymous: Boolean(isAnonymous),
-      submittedAt: new Date().toISOString(),
-      status: 'pending' as const,
-    };
-
-    citizenSubmissionsStore.unshift(submission);
-    if (citizenSubmissionsStore.length > 200) citizenSubmissionsStore.pop();
-
-    res.json({
-      success: true,
-      ticketId,
-      message: 'नागरिक पत्रकार खबर सफलतापूर्वक प्राप्त हुई। संपादकीय डेस्क द्वारा सत्यापन किया जाएगा।',
-      submission,
-    });
-  } catch (err: any) {
-    console.error('Citizen submission error:', err);
-    res.status(500).json({ error: 'Failed to process news submission.' });
-  }
-});
-
-// GET /api/citizen-news/list - Get all submitted citizen news for review (contact details redacted for public callers)
-app.get('/api/citizen-news/list', (req: Request, res: Response) => {
-  const adminSecret = req.headers['x-admin-key'] || req.headers['authorization'];
-  const isAuthorized = Boolean(adminSecret);
-
-  // Redact personal contact information (phone, email) if not authenticated as admin
-  const sanitizedSubmissions = citizenSubmissionsStore.map((sub) => {
-    if (isAuthorized) return sub;
-    return {
-      ...sub,
-      senderPhone: sub.senderPhone ? '***-***-****' : undefined,
-      senderEmail: sub.senderEmail ? '*****@***.***' : undefined,
-    };
-  });
-
-  res.json({
-    success: true,
-    total: citizenSubmissionsStore.length,
-    submissions: sanitizedSubmissions,
-  });
-});
+// Reader news submissions are written straight to Firestore (`submissions`, validated by firestore.rules).
 
 // POST /api/ai/generate-news-image - Generate or suggest high-quality featured images
-app.post('/api/ai/generate-news-image', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/ai/generate-news-image', requireRole('staff'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { headline, category } = req.body;
     const sanitizedHeadline = sanitizeString(String(headline || '')).slice(0, 100);
@@ -1165,76 +1054,6 @@ app.post('/api/ai/generate-news-image', async (req: Request, res: Response): Pro
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to generate image' });
   }
-});
-
-// GET /api/security/audit-report - Real-time Security Health Audit
-app.get('/api/security/audit-report', (_req: Request, res: Response) => {
-  res.json({
-    status: 'SECURE',
-    timestamp: new Date().toISOString(),
-    auditChecks: [
-      { check: 'X-Content-Type-Options: nosniff', status: 'ACTIVE', rating: 'A+' },
-      { check: 'X-Frame-Options: SAMEORIGIN (Anti-Clickjacking)', status: 'ACTIVE', rating: 'A+' },
-      { check: 'X-XSS-Protection: 1; mode=block', status: 'ACTIVE', rating: 'A+' },
-      { check: 'Referrer-Policy: strict-origin-when-cross-origin', status: 'ACTIVE', rating: 'A+' },
-      { check: 'Permissions-Policy: Camera/Mic Disabled for Safety', status: 'ACTIVE', rating: 'A+' },
-      { check: 'API Rate Limiting (Anti-DoS / Anti-Bruteforce)', status: 'ACTIVE', rating: 'A+' },
-      { check: 'Payload Input Sanitization (Anti-XSS)', status: 'ACTIVE', rating: 'A+' },
-      { check: 'Honeypot Anti-Spam Bot Trap', status: 'ACTIVE', rating: 'A+' },
-      { check: 'CORS & Parameter Validation', status: 'ACTIVE', rating: 'A+' },
-      { check: 'Server-Side Gemini API Proxy (No Client Secret Exposure)', status: 'ACTIVE', rating: 'A+' },
-    ],
-    overallRating: '100% HARDENED',
-  });
-});
-
-// Helper to escape XML special characters
-function escapeXml(unsafe: string): string {
-  if (!unsafe || typeof unsafe !== 'string') return '';
-  return unsafe
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-// In-memory synced articles store seeded with published seed articles
-let sitemapArticlesRegistry: Array<{ id: string; title: string; category?: string; updatedAt?: string }> =
-  INITIAL_NEWS.map((a) => ({
-    id: a.id,
-    title: a.title,
-    category: a.category || 'national',
-    updatedAt: a.createdAt,
-  }));
-
-// POST /api/sitemap/sync-articles - Client syncs Firestore published articles into server sitemap registry
-app.post('/api/sitemap/sync-articles', (req: Request, res: Response) => {
-  const { articles } = req.body;
-  if (Array.isArray(articles) && articles.length > 0) {
-    const valid = articles
-      .filter((a: any) => a && a.id && a.title && (a.status === 'published' || !a.status))
-      .map((a: any) => ({
-        id: a.id,
-        title: a.title,
-        category: a.category || 'national',
-        updatedAt: a.updatedAt || a.createdAt || new Date().toISOString(),
-      }));
-
-    if (valid.length > 0) {
-      const map = new Map<string, (typeof sitemapArticlesRegistry)[0]>();
-      // First insert existing
-      for (const item of sitemapArticlesRegistry) {
-        map.set(item.id, item);
-      }
-      // Overwrite with live from client
-      for (const item of valid) {
-        map.set(item.id, item);
-      }
-      sitemapArticlesRegistry = Array.from(map.values());
-    }
-  }
-  res.json({ success: true, count: sitemapArticlesRegistry.length });
 });
 
 // POST /api/news/slugify - Generate clean, Google Discover-ready Latin slug from Hindi headline
@@ -1299,7 +1118,7 @@ app.post('/api/news/slugify', (req: Request, res: Response): void => {
 });
 
 // POST /api/epaper/upload-pdf - Upload real newspaper PDF edition to persistent disk storage
-app.post('/api/epaper/upload-pdf', (req: Request, res: Response): void => {
+app.post('/api/epaper/upload-pdf', requireRole('editor'), (req: Request, res: Response): void => {
   try {
     const { fileName, base64Data, editionDate, editionCode } = req.body || {};
     if (!base64Data || typeof base64Data !== 'string') {
@@ -1352,197 +1171,31 @@ app.post('/api/epaper/upload-pdf', (req: Request, res: Response): void => {
 });
 
 // GET /sitemap.xml - Production Server-Side Dynamic XML Sitemap for Google News & Crawlers
-app.get('/sitemap.xml', async (_req: Request, res: Response): Promise<void> => {
-  const baseUrl = 'https://khabridost.com';
-  const now = new Date().toISOString();
-
-  // Try fetching live published articles from Firestore REST endpoint if accessible
-  let articlesList: Array<{ id: string; title: string; category?: string; updatedAt?: string }> = [
-    ...sitemapArticlesRegistry,
-  ];
-
-  try {
-    const projectId = process.env.FIREBASE_PROJECT_ID || 'ai-studio-applet-webapp-f480d';
-    const databaseId = 'ai-studio-595d1ed9-f621-49b9-8c06-e20c04392313';
-    const firestoreRestUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/articles?pageSize=100`;
-    const response = await fetch(firestoreRestUrl, { signal: AbortSignal.timeout(2000) });
-    if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data.documents)) {
-        const fromDb = data.documents
-          .map((doc: any) => {
-            const fields = doc.fields || {};
-            const id = doc.name ? doc.name.split('/').pop() : '';
-            return {
-              id,
-              title: fields.title?.stringValue || '',
-              category: fields.category?.stringValue || 'national',
-              updatedAt: fields.updatedAt?.stringValue || doc.updateTime || now,
-            };
-          })
-          .filter((a: any) => a.id && a.title);
-
-        if (fromDb.length > 0) {
-          const map = new Map<string, (typeof articlesList)[0]>();
-          for (const item of articlesList) map.set(item.id, item);
-          for (const item of fromDb) map.set(item.id, item);
-          articlesList = Array.from(map.values());
-        }
-      }
-    }
-  } catch {
-    // Non-blocking fallback to registry
-  }
-
-  // Fallback core categories
-  const categories = [
-    'national',
-    'state',
-    'politics',
-    'business',
-    'entertainment',
-    'tech',
-    'sports',
-    'lifestyle',
-    'world',
-  ];
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-
-  // 1. Homepage
-  xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${now.slice(0, 10)}</lastmod>\n    <changefreq>always</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
-
-  // 2. Core News Categories (Clean canonical URLs)
-  for (const cat of categories) {
-    xml += `  <url>\n    <loc>${baseUrl}/category/${cat}</loc>\n    <lastmod>${now.slice(0, 10)}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
-  }
-
-  // 3. Informational & Editorial Pages (Clean URLs without hash fragments)
-  const editorialPages = [
-    { path: '/live-feed', freq: 'always', prio: '0.9' },
-    { path: '/epaper', freq: 'daily', prio: '0.8' },
-    { path: '/archive', freq: 'daily', prio: '0.7' },
-    { path: '/submit-news', freq: 'monthly', prio: '0.6' },
-    { path: '/contact', freq: 'monthly', prio: '0.6' },
-    { path: '/about', freq: 'monthly', prio: '0.6' },
-    { path: '/privacy-policy', freq: 'monthly', prio: '0.4' },
-    { path: '/terms', freq: 'monthly', prio: '0.4' },
-  ];
-  for (const page of editorialPages) {
-    xml += `  <url>\n    <loc>${baseUrl}${page.path}</loc>\n    <lastmod>${now.slice(0, 10)}</lastmod>\n    <changefreq>${page.freq}</changefreq>\n    <priority>${page.prio}</priority>\n  </url>\n`;
-  }
-
-  // 4. Articles (Clean canonical URLs)
-  for (const article of articlesList) {
-    const pubDate = (article.updatedAt || now).slice(0, 10);
-    xml += `  <url>\n`;
-    xml += `    <loc>${baseUrl}/article/${encodeURIComponent(article.id)}</loc>\n`;
-    xml += `    <lastmod>${pubDate}</lastmod>\n`;
-    xml += `    <changefreq>weekly</changefreq>\n`;
-    xml += `    <priority>0.8</priority>\n`;
-    xml += `  </url>\n`;
-  }
-
-  xml += `</urlset>`;
-
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=1800, s-maxage=1800');
-  res.status(200).send(xml);
-});
-
-// GET /news-sitemap.xml - Dedicated Google News XML Sitemap (Last 48 Hours)
-app.get('/news-sitemap.xml', async (_req: Request, res: Response): Promise<void> => {
-  const baseUrl = 'https://khabridost.com';
-  const now = new Date();
-  const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-
-  // Filter articles published within the last 48 hours for Google News compliance
-  const recentArticles = sitemapArticlesRegistry.filter((art) => {
-    if (!art.updatedAt) return true;
-    const itemDate = new Date(art.updatedAt);
-    return isNaN(itemDate.getTime()) || itemDate >= twoDaysAgo;
-  });
-
-  const displayList = recentArticles.length > 0 ? recentArticles : sitemapArticlesRegistry.slice(0, 30);
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n`;
-  xml += `        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
-
-  for (const article of displayList) {
-    const pubDate = (article.updatedAt || now.toISOString());
-    xml += `  <url>\n`;
-    xml += `    <loc>${baseUrl}/article/${encodeURIComponent(article.id)}</loc>\n`;
-    xml += `    <news:news>\n`;
-    xml += `      <news:publication>\n`;
-    xml += `        <news:name>Khabri Dost</news:name>\n`;
-    xml += `        <news:language>hi</news:language>\n`;
-    xml += `      </news:publication>\n`;
-    xml += `      <news:publication_date>${pubDate}</news:publication_date>\n`;
-    xml += `      <news:title>${escapeXml(article.title)}</news:title>\n`;
-    xml += `    </news:news>\n`;
-    xml += `  </url>\n`;
-  }
-
-  xml += `</urlset>`;
-
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=600, s-maxage=600');
-  res.status(200).send(xml);
-});
-
-// GET /rss.xml - Standard RSS 2.0 Syndication Feed
-app.get('/rss.xml', (_req: Request, res: Response) => {
-  const baseUrl = 'https://khabridost.com';
-  const now = new Date().toUTCString();
-
-  let rss = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  rss += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n`;
-  rss += `  <channel>\n`;
-  rss += `    <title>Khabri Dost | खबरी दोस्त — ताज़ा हिंदी समाचार</title>\n`;
-  rss += `    <link>${baseUrl}/</link>\n`;
-  rss += `    <description>देश, दुनिया, राजनीति, खेल, मनोरंजन और व्यापार की ताज़ा व निष्पक्ष ख़बरें</description>\n`;
-  rss += `    <language>hi</language>\n`;
-  rss += `    <lastBuildDate>${now}</lastBuildDate>\n`;
-  rss += `    <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml" />\n`;
-
-  for (const article of sitemapArticlesRegistry.slice(0, 30)) {
-    const link = `${baseUrl}/article/${encodeURIComponent(article.id)}`;
-    rss += `    <item>\n`;
-    rss += `      <title>${escapeXml(article.title)}</title>\n`;
-    rss += `      <link>${link}</link>\n`;
-    rss += `      <guid isPermaLink="true">${link}</guid>\n`;
-    rss += `      <category>${escapeXml(article.category || 'national')}</category>\n`;
-    rss += `      <pubDate>${new Date(article.updatedAt || Date.now()).toUTCString()}</pubDate>\n`;
-    rss += `    </item>\n`;
-  }
-
-  rss += `  </channel>\n`;
-  rss += `</rss>`;
-
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=1800, s-maxage=1800');
-  res.status(200).send(rss);
-});
-
-// GET /robots.txt - Search Engine Crawler Directives
-app.get('/robots.txt', (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.send(`User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /#admin
-Disallow: /#login
-Sitemap: https://khabridost.com/sitemap.xml
-Sitemap: https://khabridost.com/news-sitemap.xml
-`);
-});
+registerSeoRoutes(app);
 
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', serverTime: new Date().toISOString() });
 });
+
+// Unknown API paths are JSON 404s, not the web page.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+/** Send index.html with the right <head>, status code or redirect for this URL. */
+async function sendPage(req: Request, res: Response, template: string) {
+  const url = new URL(req.originalUrl, 'http://local');
+  const page = await resolvePage(url.pathname, url.search);
+  if (page.redirect) {
+    res.redirect(301, page.redirect);
+    return;
+  }
+  res
+    .status(page.status)
+    .set({ 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' })
+    .end(injectHead(template, renderHead(page.head)));
+}
 
 // Vite middleware in dev, Static serve in production
 async function startServer() {
@@ -1555,29 +1208,36 @@ async function startServer() {
         hmr: process.env.DISABLE_HMR !== 'true',
         watch: process.env.DISABLE_HMR === 'true' ? null : {},
       },
-      appType: 'spa',
+      appType: 'custom',
     });
     app.use(vite.middlewares);
 
-    // Fallback for SPA routing in development
     app.use('*', async (req, res, next) => {
-      const url = req.originalUrl;
-      if (url.startsWith('/api/')) return next();
+      if (req.originalUrl.startsWith('/api/')) return next();
       try {
-        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
-        template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        const template = await vite.transformIndexHtml(
+          req.originalUrl,
+          fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8')
+        );
+        await sendPage(req, res, template);
       } catch (e: any) {
-        if (vite && typeof vite.ssrFixStacktrace === 'function') {
-          vite.ssrFixStacktrace(e);
-        }
+        vite.ssrFixStacktrace?.(e);
         next(e);
       }
     });
   } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+    const dist = path.resolve(__dirname, 'dist');
+    // Hashed build assets never change; HTML is always revalidated.
+    app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }));
+    app.use(express.static(dist, { index: false, maxAge: '1h' }));
+    const template = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8');
+    app.get('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api/')) return next();
+      try {
+        await sendPage(req, res, template);
+      } catch (e) {
+        next(e);
+      }
     });
   }
 

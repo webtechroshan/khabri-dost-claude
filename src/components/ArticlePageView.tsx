@@ -78,6 +78,7 @@ import {
 } from '../services/newsService';
 import { formatHindiTimeAgo, speakHindiText, stopHindiSpeech } from '../utils/hindiHelpers';
 import { renderArticleBlock, splitArticleContent } from '../utils/articleContentParser';
+import { AdCode } from './AdCode';
 import { AdBanner } from './AdBanner';
 import { ArticleCard } from './ArticleCard';
 import { SpotlightBriefTicker } from './SpotlightBriefTicker';
@@ -2535,9 +2536,9 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
               </div>
 
               {stickyBarConfig.adType === 'script' && stickyBarConfig.adScriptCode ? (
-                <div
+                <AdCode
+                  code={stickyBarConfig.adScriptCode}
                   className="flex-1 overflow-hidden max-h-[55px] text-center"
-                  dangerouslySetInnerHTML={{ __html: stickyBarConfig.adScriptCode }}
                 />
               ) : (
                 <a
@@ -2579,9 +2580,9 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
                   </span>
                 </div>
                 {stickyBarConfig.adType === 'script' && stickyBarConfig.adScriptCode ? (
-                  <div
+                  <AdCode
+                    code={stickyBarConfig.adScriptCode}
                     className="flex-1 overflow-hidden max-h-[44px] text-center"
-                    dangerouslySetInnerHTML={{ __html: stickyBarConfig.adScriptCode }}
                   />
                 ) : (
                   <a

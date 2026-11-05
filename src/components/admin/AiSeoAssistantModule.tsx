@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ApiConfiguration, NewsArticle, NewsCategory } from '../../types/news';
 import { CATEGORIES } from '../../data/seedNews';
+import { authFetch } from '../../utils/authFetch';
 
 interface AiSeoAssistantModuleProps {
   apiConfig?: ApiConfiguration;
@@ -95,7 +96,7 @@ export const AiSeoAssistantModule: React.FC<AiSeoAssistantModuleProps> = ({
     try {
       if (bodyDraft.trim().length > 30) {
         // Detailed content analysis
-        const res = await fetch('/api/ai/generate-seo-meta', {
+        const res = await authFetch('/api/ai/generate-seo-meta', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -120,7 +121,7 @@ export const AiSeoAssistantModule: React.FC<AiSeoAssistantModuleProps> = ({
         }
       } else {
         // Draft from topic
-        const res = await fetch('/api/ai/draft-article-seo', {
+        const res = await authFetch('/api/ai/draft-article-seo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

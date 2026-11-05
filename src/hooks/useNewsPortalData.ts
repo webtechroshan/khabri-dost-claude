@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { isArticlePubliclyVisible } from '../utils/articleVisibility';
+import { staffDocId } from '../utils/roles';
+import { useState, useEffect, useMemo } from 'react';
 import {
   NewsArticle,
   NewsBookmark,
@@ -15,6 +17,12 @@ import {
 } from '../types/news';
 import {
   subscribeToArticles,
+  subscribeStaff,
+  subscribeSubmissions,
+  updateSubmission,
+  deleteSubmission,
+  saveStaffMember,
+  deleteStaffMember,
   subscribeToUserBookmarks,
   toggleBookmark,
   subscribeToUserReadLater,
@@ -22,7 +30,6 @@ import {
   removeReadLaterItem,
   clearAllUserReadLater,
   fetchArticles,
-  seedInitialArticlesIfEmpty,
   publishArticle,
   updateArticle,
   deleteArticle,
@@ -59,16 +66,16 @@ import {
   INITIAL_SUBSCRIBERS,
   INITIAL_NOTIFICATIONS,
   INITIAL_MEDIA_ASSETS,
-  INITIAL_EDITORIAL_USERS,
   INITIAL_LIVE_BLOGS,
   INITIAL_CONTACT_INQUIRIES,
-  INITIAL_CITIZEN_SUBMISSIONS,
 } from '../data/portalDefaults';
 
 interface UseNewsPortalDataOptions {
   user: any;
   isAdmin: boolean;
   isStaff: boolean;
+  /** Editors and administrators see every article in the newsroom. */
+  isEditor?: boolean;
   currentCategory: NewsCategory;
 }
 
@@ -77,7 +84,7 @@ interface UseNewsPortalDataOptions {
  * Master custom hook for all portal state, real-time Firestore listeners,
  * local storage fallback sync, and editorial mutations.
  */
-export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: UseNewsPortalDataOptions) {
+export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, currentCategory }: UseNewsPortalDataOptions) {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookmarks, setBookmarks] = useState<NewsBookmark[]>([]);
@@ -214,14 +221,15 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     return INITIAL_MEDIA_ASSETS;
   });
 
-  // Editorial Team / Users
-  const [editorialUsers, setEditorialUsers] = useState<EditorialUser[]>(() => {
-    try {
-      const saved = localStorage.getItem('kd_editorial_users');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_EDITORIAL_USERS;
-  });
+  // Editorial team: Firestore `staff` collection (administrators only).
+  const [editorialUsers, setEditorialUsers] = useState<EditorialUser[]>([]);
+  useEffect(() => {
+    if (!isAdmin) {
+      setEditorialUsers([]);
+      return;
+    }
+    return subscribeStaff(setEditorialUsers);
+  }, [isAdmin]);
 
   // Live Blogs
   const [liveBlogs, setLiveBlogs] = useState<LiveBlogEvent[]>(() => {
@@ -242,35 +250,45 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     return INITIAL_CONTACT_INQUIRIES;
   });
 
-  // Citizen News Submissions
-  const [citizenSubmissions, setCitizenSubmissions] = useState<CitizenNewsSubmission[]>(() => {
-    try {
-      const saved = localStorage.getItem('kd_citizen_submissions');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_CITIZEN_SUBMISSIONS;
-  });
-
-  // 1. Articles subscription
+  // Reader news submissions (Firestore; editors only).
+  const [citizenSubmissions, setCitizenSubmissions] = useState<CitizenNewsSubmission[]>([]);
   useEffect(() => {
-    seedInitialArticlesIfEmpty().catch(() => {});
-    const unsubscribe = subscribeToArticles((loadedArticles) => {
-      setArticles(loadedArticles);
-      setLoading(false);
-    }, currentCategory);
-    return () => unsubscribe();
-  }, [currentCategory]);
-
-  // 2. Synchronize published articles with dynamic XML sitemap
-  useEffect(() => {
-    if (articles.length > 0) {
-      fetch('/api/sitemap/sync-articles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articles }),
-      }).catch(() => {});
+    if (!(isEditor || isAdmin)) {
+      setCitizenSubmissions([]);
+      return;
     }
-  }, [articles]);
+    return subscribeSubmissions(setCitizenSubmissions);
+  }, [isEditor, isAdmin]);
+
+  // 1. Articles: readers get published articles; staff additionally get the articles their role may edit.
+  const [publicArticles, setPublicArticles] = useState<NewsArticle[]>([]);
+  const [staffOnlyArticles, setStaffOnlyArticles] = useState<NewsArticle[]>([]);
+  useEffect(() => {
+    const unsubscribe = subscribeToArticles((loaded) => {
+      setPublicArticles(loaded);
+      setLoading(false);
+    }, 'public');
+    return () => unsubscribe();
+  }, []);
+
+  const staffUid: string | null = isStaff && user?.uid ? user.uid : null;
+  useEffect(() => {
+    if (!staffUid) {
+      setStaffOnlyArticles([]);
+      return;
+    }
+    const unsubscribe = subscribeToArticles(setStaffOnlyArticles, isEditor || isAdmin ? 'all' : { authorUid: staffUid });
+    return () => unsubscribe();
+  }, [staffUid, isEditor, isAdmin]);
+
+  useEffect(() => {
+    const byId = new Map<string, NewsArticle>();
+    for (const a of publicArticles) byId.set(a.id, a);
+    for (const a of staffOnlyArticles) byId.set(a.id, a);
+    setArticles(
+      Array.from(byId.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    );
+  }, [publicArticles, staffOnlyArticles]);
 
   // 3. Live subscription to global portal settings from Firestore
   useEffect(() => {
@@ -301,8 +319,10 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     return () => unsubscribe();
   }, []);
 
-  // 6. Automated scheduled publishing check
+  // 6. Scheduled publishing while an editor has the site open. Readers never see a scheduled article
+  //    before its time (isArticlePubliclyVisible), and the server sitemaps only list published ones.
   useEffect(() => {
+    if (!(isEditor || isAdmin)) return;
     const runScheduledCheck = async () => {
       if (articles.length === 0) return;
       const result = await checkAndPublishScheduledArticles(articles);
@@ -313,16 +333,16 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     runScheduledCheck();
     const interval = setInterval(runScheduledCheck, 60000);
     return () => clearInterval(interval);
-  }, [articles]);
+  }, [articles, isEditor, isAdmin]);
 
   // 7. Contact inquiries subscription
   useEffect(() => {
-    if (!isAdmin && !isStaff) return;
+    if (!isAdmin && !isEditor) return;
     const unsubscribe = subscribeToContactInquiries((syncedInquiries) => {
       setContactInquiries(syncedInquiries);
     });
     return () => unsubscribe();
-  }, [isAdmin, isStaff]);
+  }, [isAdmin, isEditor]);
 
   // 8. Bookmarks subscription
   useEffect(() => {
@@ -415,37 +435,25 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
   };
 
   // Article CRUD
+  /** Save an article. Errors are shown to the editor and re-thrown; nothing is faked locally. */
   const handleSaveArticle = async (artData: Partial<NewsArticle>) => {
-    if (artData.id) {
-      try {
-        await updateArticle(artData.id, artData);
-      } catch {
-        setArticles((prev) =>
-          prev.map((a) => (a.id === artData.id ? ({ ...a, ...artData } as NewsArticle) : a))
-        );
-      }
-    } else {
-      try {
-        await publishArticle(artData as any);
-      } catch {
-        const fallbackId = 'art_' + Date.now();
-        const fallbackArticle: NewsArticle = {
-          ...(artData as any),
-          id: fallbackId,
-          viewsCount: 1,
-          likesCount: 0,
-          createdAt: new Date().toISOString(),
-        };
-        setArticles((prev) => [fallbackArticle, ...prev]);
-      }
+    try {
+      if (artData.id) await updateArticle(artData.id, artData);
+      else await publishArticle(artData as any);
+    } catch (e: any) {
+      const msg = e?.code === 'permission-denied' ? 'Your role does not allow this change.' : e?.message || 'Unknown error';
+      window.alert(`The article could not be saved: ${msg}`);
+      throw e;
     }
   };
 
   const handleDeleteArticle = async (id: string) => {
     try {
       await deleteArticle(id);
-    } catch {
-      setArticles((prev) => prev.filter((a) => a.id !== id));
+    } catch (e: any) {
+      window.alert(
+        `The article could not be deleted: ${e?.code === 'permission-denied' ? 'only administrators can delete articles.' : e?.message || 'Unknown error'}`
+      );
     }
   };
 
@@ -556,40 +564,28 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     updateMediaAssetRecord(updatedMedia).catch(() => {});
   };
 
-  // Editorial Users
+  // Editorial Users (Firestore; errors are reported to the console and leave the list unchanged)
   const handleAddEditorialUser = (newUser: Omit<EditorialUser, 'id' | 'joinedAt'>) => {
-    const item: EditorialUser = {
-      ...newUser,
-      id: `user-${Date.now()}`,
-      joinedAt: new Date().toISOString(),
-    };
-    setEditorialUsers((prev) => {
-      const updated = [...prev, item];
-      try {
-        localStorage.setItem('kd_editorial_users', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    saveStaffMember({ ...newUser, joinedAt: new Date().toISOString() }).catch((e) =>
+      console.warn('Could not save staff member:', e)
+    );
   };
 
   const handleUpdateEditorialUser = (updatedUser: Partial<EditorialUser> & { id: string }) => {
-    setEditorialUsers((prev) => {
-      const updated = prev.map((u) => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
-      try {
-        localStorage.setItem('kd_editorial_users', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    const current = editorialUsers.find((u) => u.id === updatedUser.id);
+    const email = updatedUser.email || current?.email || updatedUser.id;
+    if (current && updatedUser.email && staffDocId(updatedUser.email) !== current.id) {
+      // Email changed: move the record to the new id.
+      saveStaffMember({ ...current, ...updatedUser, email: updatedUser.email })
+        .then(() => deleteStaffMember(current.id))
+        .catch((e) => console.warn('Could not update staff member:', e));
+      return;
+    }
+    saveStaffMember({ ...current, ...updatedUser, email }).catch((e) => console.warn('Could not update staff member:', e));
   };
 
   const handleDeleteEditorialUser = (id: string) => {
-    setEditorialUsers((prev) => {
-      const updated = prev.filter((u) => u.id !== id);
-      try {
-        localStorage.setItem('kd_editorial_users', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    deleteStaffMember(id).catch((e) => console.warn('Could not remove staff member:', e));
   };
 
   // Live Blogs
@@ -654,15 +650,9 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     });
   };
 
-  // Citizen Submissions
-  const handleAddCitizenSubmission = (submission: CitizenNewsSubmission) => {
-    setCitizenSubmissions((prev) => {
-      const updated = [submission, ...prev];
-      try {
-        localStorage.setItem('kd_citizen_submissions', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+  // Citizen Submissions (the public form writes to Firestore itself; these are editor actions)
+  const handleAddCitizenSubmission = (_submission: CitizenNewsSubmission) => {
+    // Nothing to do: the submission is already stored and arrives through the subscription.
   };
 
   const handleUpdateCitizenSubmissionStatus = (
@@ -670,25 +660,11 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     status: CitizenNewsSubmission['status'],
     editorialNotes?: string
   ) => {
-    setCitizenSubmissions((prev) => {
-      const updated = prev.map((s) =>
-        s.id === id ? { ...s, status, editorialNotes: editorialNotes ?? s.editorialNotes } : s
-      );
-      try {
-        localStorage.setItem('kd_citizen_submissions', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    updateSubmission(id, { status, editorialNotes }).catch((e) => console.warn('Could not update submission:', e));
   };
 
   const handleDeleteCitizenSubmission = (id: string) => {
-    setCitizenSubmissions((prev) => {
-      const updated = prev.filter((s) => s.id !== id);
-      try {
-        localStorage.setItem('kd_citizen_submissions', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    deleteSubmission(id).catch((e) => console.warn('Could not delete submission:', e));
   };
 
   // Subscribers
@@ -749,8 +725,14 @@ export function useNewsPortalData({ user, isAdmin, isStaff, currentCategory }: U
     }, 8000);
   };
 
+  /** Articles readers may see. Public pages must use this list. */
+  const visibleArticles = useMemo(() => articles.filter((a) => isArticlePubliclyVisible(a)), [articles]);
+
   return {
-    articles,
+    /** Published, visible articles (public views). */
+    articles: visibleArticles,
+    /** Everything the signed-in staff member may work on (admin views). */
+    staffArticles: articles,
     setArticles,
     loading,
     bookmarks,

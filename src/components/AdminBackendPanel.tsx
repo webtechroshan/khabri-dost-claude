@@ -460,26 +460,8 @@ export const AdminBackendPanel: React.FC<AdminBackendPanelProps> = ({
     logoutStaff,
     isAdmin,
     isStaff,
-    isSessionStale,
-    reauthenticateAdmin,
-    markSessionStale,
-    serverVerifiedAdmin,
     loginAsStaffWithGoogle,
   } = useAuth();
-
-  // Re-authentication states for stale administrative sessions
-  const [isReauthenticating, setIsReauthenticating] = useState(false);
-  const [reauthError, setReauthError] = useState<string | null>(null);
-
-  const handleReauthenticate = async () => {
-    setIsReauthenticating(true);
-    setReauthError(null);
-    const res = await reauthenticateAdmin();
-    setIsReauthenticating(false);
-    if (!res.success && res.error) {
-      setReauthError(res.error);
-    }
-  };
 
   // Subscriber category filter and newsletter targeting
   const [subCategoryFilter, setSubCategoryFilter] = useState<string>('all');
@@ -3902,50 +3884,6 @@ export const AdminBackendPanel: React.FC<AdminBackendPanelProps> = ({
                     ? 'Yes, Reset Layout'
                     : 'Yes, Reset All Settings'}
                 </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FORCED RE-AUTHENTICATION GATE FOR STALE ADMINISTRATOR SESSIONS (100% English) */}
-      {isSessionStale && (
-        <div className="fixed inset-0 z-[70] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-amber-200 text-center animate-in fade-in zoom-in-95">
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200 shadow-inner">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-              Session Timeout
-            </span>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-3">
-              Administrator Re-authentication Required
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-              For administrative security and newsroom data integrity, your administrator session requires re-authentication. Please verify your credentials to continue managing sensitive portal settings.
-            </p>
-            {reauthError && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-left">
-                {reauthError}
-              </div>
-            )}
-            <div className="mt-6 space-y-3">
-              <button
-                onClick={handleReauthenticate}
-                disabled={isReauthenticating}
-                className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${isReauthenticating ? 'animate-spin' : ''}`} />
-                <span>{isReauthenticating ? 'Verifying credentials...' : 'Re-authenticate with Google'}</span>
-              </button>
-              <button
-                onClick={() => {
-                  logoutStaff();
-                  onClose();
-                }}
-                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer text-sm"
-              >
-                Sign Out & Exit
               </button>
             </div>
           </div>
