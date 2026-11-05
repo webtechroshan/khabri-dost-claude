@@ -1314,52 +1314,7 @@ export const PublisherCMS: React.FC<PublisherCMSProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(trends.length > 0
                   ? trends
-                  : [
-                      {
-                        id: 'trend-1',
-                        query: 'गगनयान मिशन 2026 ताज़ा अपडेट',
-                        category: 'tech',
-                        searchVolume: '500K+ searches',
-                        trafficRate: '+240%',
-                        status: 'hot',
-                        summary: 'इसरो का पहला मानवयुक्त अंतरिक्ष अभियान गगनयान अंतिम परीक्षण चरण में पहुँचा।',
-                        suggestedAngle: 'जानिए अंतरिक्ष यात्रियों की ट्रेनिंग और उड़ान की पूरी टाइमलाइन आसान भाषा में।',
-                        suggestedImage: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?w=1000&auto=format&fit=crop&q=80',
-                      },
-                      {
-                        id: 'trend-2',
-                        query: 'मौसम विभाग अलर्ट: भारी बारिश और लू का पूर्वानुमान',
-                        category: 'national',
-                        searchVolume: '350K+ searches',
-                        trafficRate: '+180%',
-                        status: 'hot',
-                        summary: 'उत्तर भारत में मौसम का मिज़ाज बदला, दिल्ली-यूपी समेत 8 राज्यों में यलो अलर्ट।',
-                        suggestedAngle: 'किसानों और आम जनता के लिए मौसम विभाग की क्या है ताज़ा चेतावनी।',
-                        suggestedImage: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=1000&auto=format&fit=crop&q=80',
-                      },
-                      {
-                        id: 'trend-3',
-                        query: 'टी20 क्रिकेट वर्ल्ड कप टीम इंडिया की नई रणनीति',
-                        category: 'sports',
-                        searchVolume: '450K+ searches',
-                        trafficRate: '+310%',
-                        status: 'surging',
-                        summary: 'कप्तान और कोच ने युवाओं पर जताया भरोसा, नई प्लेइंग इलेवन का खाका तैयार।',
-                        suggestedAngle: 'कौन से नए खिलाड़ियों को मिलेगा मौका और क्या रहेगी टीम की मैच रणनीति।',
-                        suggestedImage: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=1000&auto=format&fit=crop&q=80',
-                      },
-                      {
-                        id: 'trend-4',
-                        query: 'सोने-चांदी के दामों में बड़ा उलटफेर',
-                        category: 'business',
-                        searchVolume: '280K+ searches',
-                        trafficRate: '+120%',
-                        status: 'trending',
-                        summary: 'वैश्विक बाज़ार में हलचल के बीच सराफा बाज़ार में सोने के रेट में हुआ बदलाव।',
-                        suggestedAngle: 'त्योहारी सीज़न से पहले ग्राहकों के लिए खरीदारी का सही समय क्या है।',
-                        suggestedImage: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=1000&auto=format&fit=crop&q=80',
-                      },
-                    ]
+                  : []
                 ).map((trend: any) => (
                   <div
                     key={trend.id}

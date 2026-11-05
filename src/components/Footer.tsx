@@ -882,7 +882,7 @@ export const Footer: React.FC<FooterProps> = ({
                             {footerAd.title || 'खबरी दोस्त डिजिटल न्यूज़ नेटवर्क • विशेष विज्ञापन'}
                           </h4>
                           <p className="text-[11px] text-slate-600 font-kd-body line-clamp-1">
-                            {footerAd.subTitle || '5 लाख+ पाठकों तक अपने ब्रांड और उत्पादों का प्रचार करें | विशेष पार्टनरशिप दरें'}
+                            {footerAd.subTitle}
                           </p>
                         </div>
 
@@ -909,7 +909,7 @@ export const Footer: React.FC<FooterProps> = ({
                               {footerAd.title || 'खबरी दोस्त विज्ञापन'}
                             </p>
                             <p className="text-[10px] text-slate-600 truncate font-kd-meta">
-                              {footerAd.subTitle || '5 लाख+ पाठकों तक अपना ब्रांड पहुंचाएं'}
+                              {footerAd.subTitle}
                             </p>
                           </div>
                         </div>

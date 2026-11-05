@@ -58,8 +58,8 @@ export const EPaperSettingsTab: React.FC<EPaperSettingsTabProps> = ({
     title: 'दैनिक खबरी दोस्त • राष्ट्रीय संस्करण',
     pageCount: 15,
     pdfFileSize: '28.6 MB',
-    pdfFileName: 'Dainik_Jagran_National_20261021.pdf',
-    pdfUrl: currentEpaper.customPdfUrl || '/assets/aistudio/Dainik_Jagran_National_20261021.pdf',
+    pdfFileName: '',
+    pdfUrl: currentEpaper.customPdfUrl || '',
     price: '₹ 4.50',
     issueNumber: 'वर्ष 1 • अंक 245',
     leadHeadline: 'दैनिक राष्ट्रीय समाचार पत्र',
@@ -468,7 +468,7 @@ export const EPaperSettingsTab: React.FC<EPaperSettingsTabProps> = ({
               type="text"
               value={epaperConfig.customPdfUrl || ''}
               onChange={(e) => handleUpdate({ customPdfUrl: e.target.value })}
-              placeholder="/assets/aistudio/Dainik_Jagran_National_20261021.pdf"
+              placeholder="https://… or /uploads/epaper/edition.pdf"
               className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-red-500"
             />
           </div>

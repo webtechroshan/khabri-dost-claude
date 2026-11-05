@@ -1,5 +1,6 @@
 import { isArticlePubliclyVisible } from '../utils/articleVisibility';
 import { staffDocId } from '../utils/roles';
+import { cleanPortalSettings } from '../utils/cleanSettings';
 import { useState, useEffect, useMemo } from 'react';
 import {
   NewsArticle,
@@ -92,7 +93,7 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
   const [activePushToast, setActivePushToast] = useState<PushNotificationItem | null>(null);
 
   // Portal Settings (Persisted in localStorage with Firestore sync)
-  const [portalSettings, setPortalSettings] = useState<PortalSettings>(() => {
+  const [portalSettings, setPortalSettings] = useState<PortalSettings>(() => cleanPortalSettings((() => {
     try {
       const saved = localStorage.getItem('kd_portal_settings');
       if (saved) {
@@ -192,7 +193,7 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
       }
     } catch {}
     return DEFAULT_PORTAL_SETTINGS;
-  });
+  })()));
 
   // Subscribers state
   const [subscribers, setSubscribers] = useState<SubscriberItem[]>(() => {
@@ -293,7 +294,7 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
   // 3. Live subscription to global portal settings from Firestore
   useEffect(() => {
     const unsubscribe = subscribeToPortalSettings((syncedSettings) => {
-      setPortalSettings(syncedSettings);
+      setPortalSettings(cleanPortalSettings(syncedSettings));
     });
     return () => unsubscribe();
   }, []);
@@ -711,8 +712,9 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
       ...notifData,
       id: 'notif_' + Date.now(),
       sentAt: new Date().toISOString(),
-      clicksCount: 1,
-      reachCount: subscribers.length * 150 + 2400,
+      // No push provider is connected: nothing is delivered, so no reach is reported.
+      clicksCount: 0,
+      reachCount: 0,
     };
     const updated = [newNotif, ...notifications];
     setNotifications(updated);

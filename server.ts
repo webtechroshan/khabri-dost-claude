@@ -806,7 +806,7 @@ const GOOGLE_TRENDS_DATA = [
   },
 ];
 
-// GET /api/ai/google-trends - Get Real-time Trending Topics for News Auto-Generation
+// GET /api/ai/google-trends - Built-in topic ideas for the newsroom (NOT live Google Trends)
 app.get('/api/ai/google-trends', requireRole('staff'), (req: Request, res: Response) => {
   const { category, region } = req.query;
   let filtered = [...GOOGLE_TRENDS_DATA];
@@ -817,6 +817,9 @@ app.get('/api/ai/google-trends', requireRole('staff'), (req: Request, res: Respo
 
   res.json({
     success: true,
+    // This is a fixed list of topic ideas bundled with the app, not live Google Trends data.
+    source: 'built-in-sample',
+    note: 'Topic ideas only. Not live Google Trends data.',
     region: (region as string) || 'IN',
     language: 'hi',
     lastUpdated: new Date().toISOString(),

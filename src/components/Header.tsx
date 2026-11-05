@@ -1160,7 +1160,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Flame className="w-2.5 h-2.5 text-red-600 fill-red-600" />
               <span>ट्रेंडिंग:</span>
             </button>
-            {(portalSettings.trendingTopics || ['#Budget2026', '#Election2026', '#Cricket', '#TechNews']).slice(0, 4).map((t, idx) => (
+            {(portalSettings.trendingTopics || []).slice(0, 4).map((t, idx) => (
               <button
                 key={idx}
                 onClick={() => {

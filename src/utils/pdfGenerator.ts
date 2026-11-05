@@ -276,7 +276,8 @@ export async function downloadDailyEPaperPdf(
   explicitPdfUrl?: string
 ): Promise<boolean> {
   const dateStr = dateString || new Date().toISOString().slice(0, 10);
-  const pdfUrl = explicitPdfUrl || portalSettings?.epaperSettings?.customPdfUrl || '/assets/aistudio/Dainik_Jagran_National_20261021.pdf';
+  const pdfUrl = explicitPdfUrl || portalSettings?.epaperSettings?.customPdfUrl || '';
+  if (!pdfUrl) return false;
 
   try {
     const link = document.createElement('a');

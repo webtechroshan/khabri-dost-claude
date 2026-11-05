@@ -23,32 +23,8 @@ interface SidebarAdConfigTabProps {
   onUpdateSettings: (settings: PortalSettings) => void;
 }
 
-const PRESET_BANNERS = [
-  {
-    name: 'Business & Media Sponsor',
-    url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&auto=format&fit=crop&q=80',
-    title: 'खबरी दोस्त मीडिया नेटवर्क • 5 लाख+ पाठकों तक अपना ब्रांड पहुंचाएं',
-    link: '#contact',
-  },
-  {
-    name: 'Tech & Digital Innovation',
-    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
-    title: 'डिजिटल ट्रांसफॉर्मेशन सॉल्यूशन्स 2026 • आज ही संपर्क करें',
-    link: '#contact',
-  },
-  {
-    name: 'Automobile & Luxury',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
-    title: 'प्रीमियम व्हीकल फेस्टिव ऑफर • टेस्ट ड्राइव बुक करें',
-    link: '#contact',
-  },
-  {
-    name: 'Education & Career Expo',
-    url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
-    title: 'राष्ट्रीय शिक्षा शिखर सम्मेलन 2026 • निःशुल्क पंजीकरण',
-    link: '#contact',
-  },
-];
+// Stock-photo presets removed: ads must be real creatives uploaded by the owner.
+const PRESET_BANNERS: Array<{ name: string; url: string; title: string; link: string }> = [];
 
 export const SidebarAdConfigTab: React.FC<SidebarAdConfigTabProps> = ({
   settings,

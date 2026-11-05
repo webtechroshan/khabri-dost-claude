@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PortalSettings, GoogleTrendsConfig, NewsCategory } from '../../types/news';
 import { DEFAULT_GOOGLE_TRENDS_CONFIG } from '../../data/portalDefaults';
+import { DEMO_CONTENT } from '../../utils/articleVisibility';
 
 interface GoogleTrendsTabProps {
   settings?: GoogleTrendsConfig;
@@ -38,7 +39,7 @@ export interface TrendingItem {
   isBreakout?: boolean;
 }
 
-export const INITIAL_TRENDING_ITEMS: TrendingItem[] = [
+const SAMPLE_TRENDING_ITEMS: TrendingItem[] = [
   {
     id: 'tr-1',
     query: 'Budget 2026 Tax Slab Updates',
@@ -105,6 +106,9 @@ export const INITIAL_TRENDING_ITEMS: TrendingItem[] = [
     relatedQueries: ['Hindi Voice Translation AI', '5G Mobile Under 20000', 'Best Camera Phone'],
   },
 ];
+
+/** Sample topics exist only in demo builds; this is not live Google Trends data. */
+export const INITIAL_TRENDING_ITEMS: TrendingItem[] = DEMO_CONTENT ? SAMPLE_TRENDING_ITEMS : [];
 
 export const GoogleTrendsTab: React.FC<GoogleTrendsTabProps> = ({
   settings,
