@@ -27,7 +27,7 @@ Body font on every sample: `Mukta, sans-serif`. Body background under emulated O
 
 All 16 page prototypes (10 public, 6 admin) at all 14 widths: **0px horizontal overflow** (Chromium emulation).
 Component sheets, design system, compare and index pages: 0px at 320, 390, 768 and 1366.
-Previews: `visual/responsive-previews/home-{width}.jpg` and `article-{width}.jpg` (14 widths each).
+Previews: `visual/responsive-previews/homepage-{width}.jpg` and `article-{width}.jpg` (14 widths each).
 
 ## C. Behaviour by range
 
