@@ -355,7 +355,6 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
         ...permissions,
         allowedCategories: assignedCategories,
       },
-      accessPin: accessPin.trim() || '1234',
       phone: phone.trim() || undefined,
       department: department.trim() || undefined,
       assignedCategories,
@@ -395,7 +394,6 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
         ...editPermissions,
         allowedCategories: editAssignedCategories,
       },
-      accessPin: editAccessPin.trim() || '1234',
       phone: editPhone.trim() || undefined,
       department: editDepartment.trim() || undefined,
       assignedCategories: editAssignedCategories,
@@ -674,9 +672,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
 
                 {/* Footer Controls */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div className="text-[11px] text-slate-400 font-mono">
-                    PIN: <strong className="text-slate-700">{staff.accessPin || '••••'}</strong>
-                  </div>
+                  <div className="text-xs text-slate-500">Google sign-in</div>
 
                   <div className="flex items-center space-x-1.5">
                     <button
@@ -826,8 +822,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
               <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
                 {[
                   { role: 'Super Admin', live: '✓ Full', editAll: '✓ Full', del: '✓ Full', media: '✓ Full', seo: '✓ Full', settings: '✓ Full', users: '✓ Full' },
-                  { role: 'Editor-in-Chief', live: '✓ Full', editAll: '✓ Full', del: '✓ Full', media: '✓ Full', seo: '✓ Full', settings: '✓ Full', users: 'Staff Only' },
-                  { role: 'Editor', live: '✓ Direct', editAll: '✓ Full', del: '✓ Full', media: '✓ Full', seo: '✓ Full', settings: '✕ Restricted', users: '✕ Restricted' },
+                  { role: 'Editor-in-Chief', live: '✓ Direct', editAll: '✓ Full', del: '✕ Admin only', media: '✓ Full', seo: '✓ Full', settings: '✕ Restricted', users: '✕ Restricted' },
+                  { role: 'Editor', live: '✓ Direct', editAll: '✓ Full', del: '✕ Admin only', media: '✓ Full', seo: '✓ Full', settings: '✕ Restricted', users: '✕ Restricted' },
                   { role: 'Sub-Editor (उप-संपादक)', live: '✓ Direct', editAll: '✓ Full', del: '✕ No', media: '✓ Full', seo: '✓ Full', settings: '✕ Restricted', users: '✕ Restricted' },
                   { role: 'Senior Editor', live: '✓ Direct', editAll: '✓ Full', del: '✕ No', media: '✓ Full', seo: '✓ Full', settings: '✕ Restricted', users: '✕ Restricted' },
                   { role: 'Reporter / Journalist', live: '⏳ Review Needed', editAll: 'Own Stories', del: '✕ No', media: '✓ Upload', seo: '✕ No', settings: '✕ Restricted', users: '✕ Restricted' },
@@ -949,18 +945,10 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Quick Access PIN (4-Digits) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    placeholder="1234"
-                    value={accessPin}
-                    onChange={(e) => setAccessPin(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500 font-mono font-bold"
-                  />
+                  <p className="text-xs font-bold text-slate-700 mb-1">Sign-in</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    This person signs in with Google using the email above. No PIN or password is used.
+                  </p>
                 </div>
               </div>
 
@@ -971,8 +959,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                     <Sliders className="w-3.5 h-3.5 text-red-600" />
                     <span>Granular Access Controls &amp; Permissions</span>
                   </span>
-                  <span className="text-[10px] text-slate-500 font-semibold">
-                    Role Defaults Loaded
+                  <span className="text-xs text-slate-500">
+                    Access is enforced by role in the database rules; these boxes are notes only.
                   </span>
                 </div>
 
@@ -1278,17 +1266,10 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Access PIN (4-Digits) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={editAccessPin}
-                    onChange={(e) => setEditAccessPin(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500 font-mono font-bold"
-                  />
+                  <p className="text-xs font-bold text-slate-700 mb-1">Sign-in</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    This person signs in with Google using the email above. No PIN or password is used.
+                  </p>
                 </div>
               </div>
 

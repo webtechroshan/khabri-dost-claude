@@ -100,7 +100,7 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
   );
 
   return (
-    <main id="main-content" className={`kd-container kd-page kd-article kd-article--${fontScale}`}>
+    <div className={`kd-container kd-page kd-article kd-article--${fontScale}`}>
       {!isPublic && (
         <p className="kd-alert kd-alert--info" lang="en" role="status">
           Preview — this article is <strong>{a.status || 'not published'}</strong> and is not visible to readers.
@@ -279,6 +279,6 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
       <div className="kd-sharebar">
         <ShareButtons url={url} title={a.title} compact />
       </div>
-    </main>
+    </div>
   );
 };

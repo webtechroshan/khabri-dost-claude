@@ -115,9 +115,9 @@ export const HeaderFooterSettingsTab: React.FC<HeaderFooterSettingsTabProps> = (
     siteTitle: 'खबरी दोस्त',
     siteTagline: 'KHABRI DOST • भारत का विश्वसनीय हिंदी न्यूज़ पोर्टल',
     contactEmail: 'khabridost.com@gmail.com',
-    contactAddress: 'प्रेस एंक्लेव, कनाट प्लेस, नई दिल्ली - 110001',
-    contactPhone: '+91 11 2345 6789',
-    rniNumber: 'DELHIN/2024/84920',
+    contactAddress: '',
+    contactPhone: '',
+    rniNumber: '',
     showRniNumber: false,
     footerTheme: 'light',
     footerAboutHeading: 'खबरी दोस्त • निष्पक्ष पत्रकारिता का संकल्प',
@@ -1465,7 +1465,7 @@ export const HeaderFooterSettingsTab: React.FC<HeaderFooterSettingsTabProps> = (
                   type="text"
                   value={current.rniNumber}
                   onChange={(e) => updateHeaderFooter({ rniNumber: e.target.value })}
-                  placeholder="DELHIN/2024/84920"
+                  placeholder="Registration number (if any)"
                   className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900"
                 />
                 <button
@@ -1501,7 +1501,7 @@ export const HeaderFooterSettingsTab: React.FC<HeaderFooterSettingsTabProps> = (
                 type="text"
                 value={current.contactPhone || ''}
                 onChange={(e) => updateHeaderFooter({ contactPhone: e.target.value })}
-                placeholder="+91 11 2345 6789"
+                placeholder="+91 …"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono"
               />
             </div>
@@ -1561,9 +1561,9 @@ export const HeaderFooterSettingsTab: React.FC<HeaderFooterSettingsTabProps> = (
               </label>
               <input
                 type="text"
-                value={current.contactPhone || '+91 11 2345 6789'}
+                value={current.contactPhone || ''}
                 onChange={(e) => updateHeaderFooter({ contactPhone: e.target.value })}
-                placeholder="+91 11 2345 6789"
+                placeholder="+91 …"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <span className="text-[10px] text-slate-400 mt-1 block">Toll-free or news desk landline</span>

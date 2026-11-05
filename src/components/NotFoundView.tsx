@@ -12,7 +12,7 @@ interface Props {
 export const NotFoundView: React.FC<Props> = ({ latest, onSelectArticle, onSearch, onBackToHome }) => {
   const [q, setQ] = useState('');
   return (
-    <main id="main-content" className="kd-container kd-page kd-notfound">
+    <div className="kd-container kd-page kd-notfound">
       <p className="kd-kicker">404</p>
       <h1 className="kd-page-title">यह पेज नहीं मिला</h1>
       <p className="kd-notfound__text">हो सकता है पता गलत हो, या ख़बर हटा दी गई हो। ख़बर खोजें या होमपेज पर जाएँ।</p>
@@ -57,6 +57,6 @@ export const NotFoundView: React.FC<Props> = ({ latest, onSelectArticle, onSearc
           </ol>
         </section>
       )}
-    </main>
+    </div>
   );
 };

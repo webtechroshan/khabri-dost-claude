@@ -1616,3 +1616,10 @@ a.kd-kicker:hover {
 .kd-static-title.text-white {
   color: #fff;
 }
+.kd-main {
+  display: block;
+  min-height: 60vh;
+}
+.kd-main:focus {
+  outline: none;
+}

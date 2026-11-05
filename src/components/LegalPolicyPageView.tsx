@@ -143,10 +143,9 @@ const POLICY_DEFINITIONS: PolicyDefinition[] = [
     title: 'तथ्य-जांच नीति (Fact-Checking)',
     englishTitle: 'Fact-Checking & 4-Stage Verification Protocol',
     key: 'factCheckPolicy',
-    badge: 'IFCN Global Standards',
+    badge: 'Fact-checking',
     icon: CheckCircle2,
     description: 'गलत सूचना और अफवाहों के विरुद्ध 4-चरणीय सत्यापन प्रक्रिया और ग्राउंड रिपोर्टिंग नियम।',
-    statuteReference: 'इंटरनेशनल फैक्ट-चेकिंग नेटवर्क (IFCN) मानक संहिता',
     keywords: ['fact check', 'तथ्य', 'सत्यापन', 'verification', 'अफवाह', 'fake news', 'ग्राउंड रिपोर्ट'],
   },
   {
@@ -156,10 +155,9 @@ const POLICY_DEFINITIONS: PolicyDefinition[] = [
     title: 'संपादकीय आचार संहिता (Ethics)',
     englishTitle: 'Code of Editorial Ethics & Journalistic Independence',
     key: 'editorialEthics',
-    badge: 'PCI Independent Standards',
+    badge: 'Editorial standards',
     icon: ShieldCheck,
-    description: 'प्रेस काउंसिल ऑफ इंडिया मानकों के अनुरूप निष्पक्षता, पेड न्यूज़ पर रोक और हितों का टकराव।',
-    statuteReference: 'प्रेस काउंसिल ऑफ इंडिया (PCI) पत्रकारिता आचरण मानक',
+    description: 'निष्पक्षता, पेड न्यूज़ पर रोक और हितों का टकराव।',
     keywords: ['ethics', 'आचार संहिता', 'नैतिकता', 'paid news', 'संपादकीय', 'निष्पक्षता', 'पत्रकारिता'],
   },
   {
@@ -286,13 +284,8 @@ const CONTACT_DEPARTMENTS = [
   },
 ];
 
-const STATE_BUREAUS = [
-  { state: 'राष्ट्रीय मुख्यालय (नई दिल्ली)', head: 'श्री आलोक नाथ त्रिपाठी', email: 'delhi@khabridost.com', phone: '+91 11 2345 6789' },
-  { state: 'उत्तर प्रदेश ब्यूरो (लखनऊ)', head: 'श्री विक्रम राठौर', email: 'updesk@khabridost.com', phone: '+91 522 234 5678' },
-  { state: 'बिहार व झारखंड ब्यूरो (पटना)', head: 'श्री संतोष झा', email: 'bihardesk@khabridost.com', phone: '+91 612 234 5678' },
-  { state: 'मध्य प्रदेश व छत्तीसगढ़ (भोपाल)', head: 'श्रीमती रीता सक्सेना', email: 'mpdesk@khabridost.com', phone: '+91 755 234 5678' },
-  { state: 'राजस्थान ब्यूरो (जयपुर)', head: 'श्री मयंक शर्मा', email: 'rajdesk@khabridost.com', phone: '+91 141 234 5678' },
-];
+// Regional bureau contacts are published here only when the newsroom provides real ones.
+const STATE_BUREAUS: Array<{ state: string; head: string; email: string; phone: string }> = [];
 
 export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
   initialPolicyType = 'privacy',
@@ -353,10 +346,10 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
   const hf = portalSettings?.headerFooter || DEFAULT_HEADER_FOOTER_SETTINGS;
   const currentDef = POLICY_DEFINITIONS.find((p) => p.id === currentPolicyId) || POLICY_DEFINITIONS[0];
 
-  const officialRni = hf.rniNumber || 'DELHIN/2024/84920';
+  const officialRni = hf.showRniNumber ? hf.rniNumber || '' : '';
   const officialEmail = hf.contactEmail || 'khabridost.com@gmail.com';
-  const officialAddress = hf.contactAddress || 'प्रेस एंक्लेव, कनाट प्लेस, नई दिल्ली - 110001, भारत';
-  const officialPhone = hf.contactPhone || '+91 11 2345 6789';
+  const officialAddress = hf.contactAddress || '';
+  const officialPhone = hf.contactPhone || '';
   const editorialMotto = 'सत्य, निष्पक्षता एवं जन-सरोकार';
 
   const currentText = useMemo(() => {
@@ -687,13 +680,6 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
       <div className="bg-gradient-to-r from-red-50 via-white to-slate-50 text-slate-900 py-8 sm:py-12 border-b border-slate-200 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-3.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center space-x-1.5 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-2xs">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>विधिक एवं नियामक अनुपालन केंद्र</span>
-            </span>
-            <span className="inline-flex items-center space-x-1.5 bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded-full text-xs font-mono font-bold">
-              {currentDef.badge}
-            </span>
             {currentDef.key && (
               <span className="inline-flex items-center space-x-1 bg-white text-slate-600 border border-slate-200 px-2.5 py-1 rounded-full text-xs font-kd-meta shadow-2xs">
                 <Clock className="w-3 h-3 text-red-600" />
@@ -885,11 +871,12 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
             <div className="bg-white text-slate-900 rounded-3xl p-5 border border-slate-200 space-y-3.5 shadow-xs hidden lg:block">
               <span className="text-xs font-bold uppercase tracking-wider text-red-600 flex items-center gap-1.5 font-kd-meta">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>पंजीकृत संस्थान विवरण</span>
+                <span>संपर्क विवरण</span>
               </span>
 
               <div className="space-y-2 text-xs font-kd-meta">
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  {officialRni && (
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 text-[11px]">RNI Reg:</span>
                     <div className="flex items-center space-x-1.5">
@@ -904,10 +891,13 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
                       </button>
                     </div>
                   </div>
+                  )}
+                  {officialPhone && (
                   <div className="flex items-center justify-between pt-1 border-t border-slate-200">
                     <span className="text-slate-500 text-[11px]">हेल्पलाइन:</span>
                     <span className="text-slate-700 font-mono text-[11px]">{officialPhone}</span>
                   </div>
+                  )}
                   <div className="flex items-center justify-between pt-1 border-t border-slate-200">
                     <span className="text-slate-500 text-[11px]">ईमेल:</span>
                     <a href={`mailto:${officialEmail}`} className="text-red-600 font-mono text-[11px] hover:underline font-semibold">
@@ -1090,7 +1080,7 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
                 </div>
 
                 {/* State Bureaus Directory */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4">
+                {STATE_BUREAUS.length > 0 && <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4">
                   <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-2">
                     क्षेत्रीय राज्य संवाददाता एवं ब्यूरो नेटवर्क (Regional Bureaus)
                   </h3>
@@ -1107,7 +1097,7 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
                       </div>
                     ))}
                   </div>
-                </div>
+                </div>}
               </div>
             ) : currentPolicyId === 'complaint' ? (
               /* VIEW B: ONLINE STATUTORY GRIEVANCE REDRESSAL FORM */
@@ -1315,51 +1305,8 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
                     खबरी दोस्त भारत का एक स्वतंत्र, निष्पक्ष एवं जन-सरोकारों को समर्पित डिजिटल समाचार नेटवर्क है। हमारा उद्देश्य बिना किसी राजनीतिक, धार्मिक या कॉरपोरेट समझौते के जमीनी भारत की सच्ची रिपोर्ट, तथ्यपरक विश्लेषण और खोजी पत्रकारिता को पाठकों तक पहुँचाना है।
                   </p>
                   <p>
-                    हमारा मानना है कि सशक्त लोकतंत्र के लिए निष्पक्ष प्रेस अनिवार्य है। इसीलिए हम प्रेस काउंसिल ऑफ इंडिया (PCI) के मानकों, सूचना प्रौद्योगिकी डिजिटल मीडिया आचार संहिता नियम 2021 तथा इंटरनेशनल फैक्ट-चेकिंग नेटवर्क (IFCN) की सत्यापन पद्धतियों का पूर्ण अनुपालन करते हैं।
+                    हमारा मानना है कि सशक्त लोकतंत्र के लिए निष्पक्ष प्रेस अनिवार्य है। इसीलिए हम तथ्यों की जांच, सुधार और पारदर्शिता को अपनी संपादकीय प्रक्रिया का हिस्सा बनाते हैं।
                   </p>
-                </div>
-
-                {/* 4 Pillars Card */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="flex items-center space-x-2 font-bold text-slate-900 text-xs sm:text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>100% तथ्य-जांच प्रोटोकॉल</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      हर खबर कम से कम दो स्वतंत्र प्राथमिक स्रोतों से पुष्ट होने के बाद ही प्रकाशित की जाती है।
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="flex items-center space-x-2 font-bold text-slate-900 text-xs sm:text-sm">
-                      <ShieldCheck className="w-4 h-4 text-blue-600" />
-                      <span>पेड न्यूज़ पर पूर्ण प्रतिबंध</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      संपादकीय सामग्री और विज्ञापनों में स्पष्ट विभाजन। किसी भी प्रायोजित खबर पर स्पष्ट लेबल।
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="flex items-center space-x-2 font-bold text-slate-900 text-xs sm:text-sm">
-                      <Globe2 className="w-4 h-4 text-purple-600" />
-                      <span>जमीनी रिपोर्टिंग का विस्तार</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      देश के 5 प्रमुख राज्यों में स्थायी ब्यूरो और 200+ ग्राउंड संवाददाताओं का विश्वसनीय नेटवर्क।
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="flex items-center space-x-2 font-bold text-slate-900 text-xs sm:text-sm">
-                      <Clock className="w-4 h-4 text-amber-600" />
-                      <span>24-घंटे पारदर्शी सुधार</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      त्रुटि की सूचना मिलने पर 24 घंटे के भीतर सार्वजनिक संशोधन नोट के साथ सुधार किया जाता है।
-                    </p>
-                  </div>
                 </div>
 
                 {/* Quick Contact Button */}
@@ -1486,11 +1433,11 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
                             <span>ऑनलाइन शिकायत दर्ज करें (Online Form) ➔</span>
                           </button>
                           <a
-                            href="mailto:grievance@khabridost.com"
+                            href={`mailto:${officialEmail}`}
                             className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 font-bold text-xs hover:bg-amber-100 transition flex items-center space-x-1.5"
                           >
                             <Mail className="w-3.5 h-3.5" />
-                            <span>grievance@khabridost.com पर ईमेल करें</span>
+                            <span>{officialEmail} पर ईमेल करें</span>
                           </a>
                         </div>
                       </div>
@@ -1577,11 +1524,15 @@ export const LegalPolicyPageView: React.FC<LegalPolicyPageViewProps> = ({
                 <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 font-kd-meta">
                   <div className="flex items-center space-x-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>वैधानिक रूप से प्रमाणित एवं अद्यतन (Legal Stamp Verified • 2026)</span>
+                    <span>प्रकाशक द्वारा जारी नीति</span>
                   </div>
                   <div className="flex items-center space-x-3 font-mono text-[11px]">
-                    <span>RNI: {hf.rniNumber || 'DELHIN/2024/84920'}</span>
-                    <span>•</span>
+                    {hf.rniNumber && hf.showRniNumber && (
+                      <>
+                        <span>RNI: {hf.rniNumber}</span>
+                        <span>•</span>
+                      </>
+                    )}
                     <span>{hf.siteTitle || 'खबरी दोस्त'}</span>
                   </div>
                 </div>

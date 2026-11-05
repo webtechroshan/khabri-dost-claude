@@ -126,7 +126,7 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
   if (isSearch) {
     const results = [...filtered].sort(byNewest);
     return (
-      <main id="main-content" className="kd-container kd-page">
+      <div className="kd-container kd-page">
         <p className="kd-kicker">खोज</p>
         <h1 className="kd-page-title">“{searchQuery}” के परिणाम</h1>
         <p className="kd-meta" role="status">
@@ -161,7 +161,7 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
           </div>
           {sidebar}
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -171,7 +171,7 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
     const list = [...filtered].sort(byNewest);
     const [lead, ...rest] = list;
     return (
-      <main id="main-content" className="kd-container kd-page">
+      <div className="kd-container kd-page">
         <nav className="kd-crumbs" aria-label="ब्रेडक्रम्ब">
           <a href="/">होम</a>
           <span aria-hidden="true">›</span>
@@ -207,20 +207,20 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
             {sidebar}
           </div>
         )}
-      </main>
+      </div>
     );
   }
 
   // Homepage
   if (sorted.length === 0) {
     return (
-      <main id="main-content" className="kd-container kd-page">
+      <div className="kd-container kd-page">
         <h1 className="sr-only">खबरी दोस्त — ताज़ा हिंदी ख़बरें</h1>
         <div className="kd-empty">
           <p className="kd-empty__title">अभी कोई ख़बर प्रकाशित नहीं हुई है।</p>
           <p className="kd-meta">संपादक ख़बरें प्रकाशित करते ही वे यहाँ दिखेंगी।</p>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -236,7 +236,7 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
     .filter((b) => b.items.length > 0);
 
   return (
-    <main id="main-content" className="kd-container kd-page">
+    <div className="kd-container kd-page">
       <h1 className="sr-only">खबरी दोस्त — ताज़ा हिंदी ख़बरें</h1>
       <section className="kd-hero" aria-label="मुख्य ख़बरें">
         <StoryCard article={lead} variant="lead" headingLevel={2} priority onOpen={onOpen} />
@@ -308,6 +308,6 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
         </div>
         {sidebar}
       </div>
-    </main>
+    </div>
   );
 };

@@ -42,7 +42,7 @@ export const BrandCustomizerTab: React.FC<BrandCustomizerTabProps> = ({
     siteTagline: 'सटीक ख़बर, निष्पक्ष नज़र',
     contactEmail: 'contact@khabridost.com',
     contactAddress: 'New Delhi, India',
-    rniNumber: 'DELHIN/2026/00000',
+    rniNumber: '',
     socialLinks: {
       whatsappChannel: 'https://whatsapp.com/channel',
       telegramChannel: 'https://t.me',

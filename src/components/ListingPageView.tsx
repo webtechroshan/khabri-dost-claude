@@ -48,7 +48,7 @@ export const ListingPageView: React.FC<Props> = ({ kind, value, articles, portal
   const label = kind === 'author' ? 'लेखक' : kind === 'tag' ? 'टैग' : 'वीडियो ख़बरें';
 
   return (
-    <main id="main-content" className="kd-container kd-page">
+    <div className="kd-container kd-page">
       <nav className="kd-crumbs" aria-label="ब्रेडक्रम्ब">
         <a
           href="/"
@@ -106,6 +106,6 @@ export const ListingPageView: React.FC<Props> = ({ kind, value, articles, portal
           )}
         </>
       )}
-    </main>
+    </div>
   );
 };

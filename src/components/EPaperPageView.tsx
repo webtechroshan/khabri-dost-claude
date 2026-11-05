@@ -547,7 +547,7 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
       )}
 
       {/* 4. FULL-PAGE EPAPER DIGITAL READER CANVAS (NO CRAMPED POPUP) */}
-      <main className="max-w-7xl mx-auto px-1.5 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-16 sm:pb-8">
+      <div className="max-w-7xl mx-auto px-1.5 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-16 sm:pb-8">
         <div className="bg-slate-100 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm border border-slate-300 flex flex-col h-[82vh] sm:h-[88vh] min-h-[560px] sm:min-h-[640px] relative">
           {resolvedMode.type === 'pdf' ? (
             <EPaperReader
@@ -590,7 +590,7 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {/* 5. REGIONAL EDITIONS QUICK-SWITCH SECTION */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-4">

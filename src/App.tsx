@@ -728,8 +728,16 @@ function NewsPortalMain() {
       />
 
       {/* 2. View Switcher (less common pages load on demand) */}
+      <main id="main-content" tabIndex={-1} className="kd-main">
       <Suspense fallback={<div className="kd-container kd-page" aria-busy="true"><div className="kd-skel" style={{ height: 320 }} /></div>}>
-      {currentView === 'article' && activeArticle ? (
+      {pendingArticleId && currentView !== 'not-found' ? (
+        <div className="kd-container kd-page" aria-busy="true">
+          <h1 className="sr-only">ख़बर लोड हो रही है…</h1>
+          <div className="kd-skel" style={{ height: 40, maxWidth: 720 }} />
+          <div className="kd-skel" style={{ height: 24, maxWidth: 560, marginTop: 16 }} />
+          <div className="kd-skel" style={{ aspectRatio: '16 / 9', maxWidth: 812, marginTop: 24 }} />
+        </div>
+      ) : currentView === 'article' && activeArticle ? (
         <ArticleView
           article={activeArticle}
           allArticles={articles}
@@ -759,7 +767,7 @@ function NewsPortalMain() {
           }}
         />
       ) : currentView === 'live-feed' && !(activeLiveBlog || liveBlogs[0]) ? (
-        <main id="main-content" className="kd-container kd-page">
+        <div className="kd-container kd-page">
           <h1 className="kd-page-title">लाइव ख़बरें</h1>
           <div className="kd-empty">
             <p className="kd-empty__title">अभी कोई लाइव कवरेज नहीं चल रहा है।</p>
@@ -768,7 +776,7 @@ function NewsPortalMain() {
               ताज़ा ख़बरें पढ़ें
             </button>
           </div>
-        </main>
+        </div>
       ) : currentView === 'live-feed' ? (
         <LiveFeedPageView
           liveBlog={(activeLiveBlog || liveBlogs[0])!}
@@ -853,6 +861,7 @@ function NewsPortalMain() {
         />
       )}
       </Suspense>
+      </main>
 
       {/* Overlays load on demand without hiding the page. */}
       <Suspense fallback={null}>
