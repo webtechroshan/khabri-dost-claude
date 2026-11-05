@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useNewsPortalData } from './hooks/useNewsPortalData';
 
@@ -11,6 +11,10 @@ import { ContactUsPageView } from './components/ContactUsPageView';
 import { AboutUsPageView } from './components/AboutUsPageView';
 import { SubmitNewsPageView } from './components/SubmitNewsPageView';
 import { LegalPolicyPageView, LegalPolicyType } from './components/LegalPolicyPageView';
+import { parseRoute, buildPath, legacyRedirect, POLICY_PATHS, type PolicyKey } from './utils/routes';
+import { ListingPageView } from './components/ListingPageView';
+import { NotFoundView } from './components/NotFoundView';
+import { useDocumentHead } from './hooks/useDocumentHead';
 import { ArchivePageView } from './components/ArchivePageView';
 import { EPaperPageView } from './components/EPaperPageView';
 
@@ -58,7 +62,7 @@ import { resetRootCssVariablesToDefault } from './utils/cssDefaults';
  * Orchestrates views, navigation, elastic touch gestures, dynamic typography, and admin integration.
  */
 function NewsPortalMain() {
-  const { user, isStaff, isAdmin, isEditor } = useAuth();
+  const { user, isStaff, isAdmin, isEditor, loading: authLoading } = useAuth();
   const [currentCategory, setCurrentCategory] = useState<NewsCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [userCity, setUserCity] = useState<string>(() => {
@@ -71,7 +75,19 @@ function NewsPortalMain() {
 
   // Dedicated View Navigation
   const [currentView, setCurrentView] = useState<
-    'home' | 'article' | 'live-feed' | 'contact' | 'about' | 'legal' | 'submit-news' | 'archive' | 'epaper'
+    | 'home'
+    | 'article'
+    | 'live-feed'
+    | 'contact'
+    | 'about'
+    | 'legal'
+    | 'submit-news'
+    | 'archive'
+    | 'epaper'
+    | 'author'
+    | 'tag'
+    | 'videos'
+    | 'not-found'
   >('home');
   const [activeArticle, setActiveArticle] = useState<NewsArticle | null>(null);
 
@@ -482,20 +498,7 @@ function NewsPortalMain() {
     root.style.setProperty('--brand-secondary', secondaryColor);
     root.style.setProperty('--brand-red-hover', `${brandColor}e6`);
 
-    // Dynamic Title & Description
-    if (hf?.siteTitle && currentView !== 'article') {
-      const siteTitle = hf.siteTitle;
-      const tagline = hf.siteTagline || '';
-      document.title = tagline ? `${siteTitle} - ${tagline}` : siteTitle;
-
-      const metaDesc = document.querySelector('meta[name="description"]');
-      const descContent = hf.aboutText || hf.footerAboutText || hf.siteTagline;
-      if (metaDesc && descContent) {
-        metaDesc.setAttribute('content', descContent);
-      }
-      const ogTitle = document.querySelector('meta[property="og:title"]');
-      if (ogTitle) ogTitle.setAttribute('content', document.title);
-    }
+    // <title> and meta tags: useDocumentHead.
 
     // Dynamic Favicon
     if (hf?.faviconUrl) {
@@ -518,144 +521,160 @@ function NewsPortalMain() {
     title: currentView === 'article' && activeArticle ? activeArticle.title : document.title,
   });
 
-  // URL Route Detection for Articles, Categories, Staff Login, Legal Policies
-  useEffect(() => {
-    const handleUrlRoute = () => {
-      const hash = window.location.hash.toLowerCase();
-      const path = window.location.pathname;
-      const lowerPath = path.toLowerCase();
-      const searchParams = new URLSearchParams(window.location.search);
-      const articleQuery = searchParams.get('article');
-      const categoryQuery = searchParams.get('category');
+  // ---------------------------------------------------------------------------
+  // Routing: the address bar is the source of truth (see src/utils/routes.ts).
+  // URL → state on load and Back/Forward; state → URL whenever the reader navigates.
+  // ---------------------------------------------------------------------------
+  const [pendingArticleId, setPendingArticleId] = useState<string | null>(null);
+  const [listingValue, setListingValue] = useState<string>('');
+  const applyingUrl = useRef(false);
 
-      // 1. Direct Article URL Resolution
-      let targetArticleId: string | null = null;
-      if (lowerPath.startsWith('/article/')) {
-        targetArticleId = path.slice('/article/'.length).split('/')[0].split('?')[0].trim();
-      } else if (articleQuery) {
-        targetArticleId = articleQuery.trim();
-      }
-
-      if (targetArticleId) {
-        const found = articles.find((a) => a.id === targetArticleId);
-        if (found) {
-          setActiveArticle(found);
-          setCurrentView('article');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-      }
-
-      // 2. Category URL Resolution
-      let targetCategory: string | null = null;
-      if (lowerPath.startsWith('/category/')) {
-        targetCategory = path.slice('/category/'.length).split('/')[0].split('?')[0].trim();
-      } else if (categoryQuery) {
-        targetCategory = categoryQuery.trim();
-      }
-
-      if (targetCategory) {
-        const validCat = CATEGORIES.find((c) => c.id === targetCategory.toLowerCase());
-        if (validCat) {
-          setCurrentCategory(validCat.id as NewsCategory);
-          setCurrentView('home');
-          setActiveArticle(null);
-          return;
-        }
-      }
-
-      // 3. Live Feed
-      if (lowerPath === '/live-feed' || lowerPath === '/live' || hash === '#live-feed' || hash === '#live') {
+  const applyLocation = useCallback(() => {
+    const { pathname, search, hash } = window.location;
+    const redirect = legacyRedirect(pathname, search, hash);
+    if (redirect) window.history.replaceState(null, '', redirect);
+    const route = parseRoute(window.location.pathname, window.location.search);
+    applyingUrl.current = true;
+    setSearchQuery(route.page === 'search' ? route.value || '' : '');
+    setPendingArticleId(route.page === 'article' ? route.value || null : null);
+    if (route.page !== 'article') setActiveArticle(null);
+    switch (route.page) {
+      case 'home':
+        setCurrentCategory('all');
+        setCurrentView('home');
+        break;
+      case 'search':
+        setCurrentCategory('all');
+        setCurrentView('home');
+        break;
+      case 'category':
+        setCurrentCategory((route.value || 'all') as NewsCategory);
+        setCurrentView('home');
+        break;
+      case 'article':
+        break; // resolved below once articles are loaded
+      case 'live':
         setCurrentView('live-feed');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
-      // 4. E-Paper Page URL
-      if (lowerPath === '/epaper' || hash.startsWith('#epaper')) {
-        setCurrentView('epaper');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
-      // 5. Admin & Staff routes
-      if (hash === '#admin' || hash === '#/admin' || lowerPath === '/admin' || lowerPath.endsWith('/admin')) {
-        if (isAdmin || isStaff) {
-          setShowAdminBackend(true);
-        } else {
-          setShowStaffLogin(true);
-        }
-      } else if (hash === '#login' || hash === '#/login' || hash === '#staff' || lowerPath === '/login' || lowerPath.endsWith('/login')) {
-        setShowStaffLogin(true);
-      } else if (hash === '#about' || lowerPath === '/about' || lowerPath.endsWith('/about')) {
-        setCurrentView('about');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (hash === '#contact' || lowerPath === '/contact' || lowerPath.endsWith('/contact')) {
-        setCurrentView('contact');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (hash === '#submit-news' || hash === '#reporter' || lowerPath === '/submit-news' || lowerPath.endsWith('/submit-news')) {
-        setCurrentView('submit-news');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (hash === '#archive' || lowerPath === '/archive' || lowerPath.endsWith('/archive')) {
-        setCurrentView('archive');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (
-        hash === '#sudoku' ||
-        hash === '#/sudoku' ||
-        hash === '#game' ||
-        hash === '#puzzle' ||
-        lowerPath === '/sudoku' ||
-        lowerPath.endsWith('/sudoku')
-      ) {
-        setShowSudokuModal(true);
-      } else if (
-        hash.startsWith('#legal-') ||
-        hash === '#privacy-policy' ||
-        lowerPath === '/privacy-policy' ||
-        hash === '#terms-of-service' ||
-        lowerPath === '/terms' ||
-        lowerPath === '/terms-and-conditions' ||
-        hash === '#grievance-redressal' ||
-        hash === '#fact-check-policy' ||
-        hash === '#editorial-ethics' ||
-        hash === '#disclaimer' ||
-        hash === '#corrections' ||
-        hash === '#dmca'
-      ) {
-        let policy: LegalPolicyType = 'privacy';
-        if (hash.includes('terms') || lowerPath.includes('terms')) policy = 'terms';
-        else if (hash.includes('grievance')) policy = 'grievance';
-        else if (hash.includes('fact')) policy = 'factCheck';
-        else if (hash.includes('ethics')) policy = 'ethics';
-        else if (hash.includes('disclaimer')) policy = 'disclaimer';
-        else if (hash.includes('corrections')) policy = 'corrections';
-        else if (hash.includes('dmca') || hash.includes('copyright')) policy = 'dmca';
-        setActiveLegalPolicyType(policy);
+        break;
+      case 'policy':
+        setActiveLegalPolicyType((route.value || 'privacy') as LegalPolicyType);
         setCurrentView('legal');
-        setActiveArticle(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (lowerPath === '/' && !hash) {
-        if (currentView === 'article') {
-          setCurrentView('home');
-          setActiveArticle(null);
-        }
-      }
-    };
+        break;
+      case 'author':
+      case 'tag':
+      case 'videos':
+        setListingValue(route.value || '');
+        setCurrentView(route.page);
+        break;
+      case 'not-found':
+        setCurrentView('not-found');
+        break;
+      default:
+        setCurrentView(route.page as typeof currentView);
+    }
+    if (route.overlay === 'login') setShowStaffLogin(true);
+    if (route.overlay === 'sudoku') setShowSudokuModal(true);
+    if (route.overlay === 'admin') setPendingAdminOpen(true);
+  }, []);
 
-    handleUrlRoute();
-    window.addEventListener('hashchange', handleUrlRoute);
-    window.addEventListener('popstate', handleUrlRoute);
+  const [pendingAdminOpen, setPendingAdminOpen] = useState(false);
+  useEffect(() => {
+    if (!pendingAdminOpen || authLoading) return;
+    setPendingAdminOpen(false);
+    if (isStaff) setShowAdminBackend(true);
+    else setShowStaffLogin(true);
+  }, [pendingAdminOpen, authLoading, isStaff]);
+
+  useEffect(() => {
+    applyLocation();
+    window.addEventListener('popstate', applyLocation);
+    window.addEventListener('hashchange', applyLocation);
     return () => {
-      window.removeEventListener('hashchange', handleUrlRoute);
-      window.removeEventListener('popstate', handleUrlRoute);
+      window.removeEventListener('popstate', applyLocation);
+      window.removeEventListener('hashchange', applyLocation);
     };
-  }, [articles, isAdmin, isStaff]);
+  }, [applyLocation]);
+
+  // Plain internal links (<a href="/author/…">) navigate inside the app without a page reload.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.('a');
+      if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+      const href = a.getAttribute('href') || '';
+      if (!href.startsWith('/') || href.startsWith('//') || href.startsWith('/api/') || /\.[a-z0-9]{2,5}($|\?)/i.test(href)) return;
+      e.preventDefault();
+      window.history.pushState(null, '', href);
+      applyLocation();
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, [applyLocation]);
+
+  // Resolve /article/:id once articles are available. Staff may open their own drafts (preview).
+  useEffect(() => {
+    if (!pendingArticleId) return;
+    const found =
+      articles.find((a) => a.id === pendingArticleId) || staffArticles.find((a) => a.id === pendingArticleId);
+    if (found) {
+      setActiveArticle(found);
+      setCurrentView('article');
+      setPendingArticleId(null);
+    } else if (!loading && !authLoading) {
+      setCurrentView('not-found');
+    }
+  }, [pendingArticleId, articles, staffArticles, loading, authLoading]);
+
+  // Keep the open article in sync with live updates (edits, unpublishing).
+  useEffect(() => {
+    if (!activeArticle) return;
+    const fresh = articles.find((a) => a.id === activeArticle.id) || staffArticles.find((a) => a.id === activeArticle.id);
+    if (fresh && fresh !== activeArticle) setActiveArticle(fresh);
+  }, [articles, staffArticles]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentPath = useMemo(() => {
+    switch (currentView) {
+      case 'article':
+        return activeArticle ? buildPath({ page: 'article', value: activeArticle.id }) : null;
+      case 'home':
+        if (searchQuery.trim()) return buildPath({ page: 'search', value: searchQuery.trim() });
+        return currentCategory === 'all' ? '/' : buildPath({ page: 'category', value: currentCategory });
+      case 'live-feed':
+        return '/live';
+      case 'legal':
+        if (activeLegalPolicyType === 'contact') return '/contact';
+        if (activeLegalPolicyType === 'about') return '/about';
+        if (activeLegalPolicyType === 'complaint') return POLICY_PATHS.grievance;
+        return POLICY_PATHS[activeLegalPolicyType as PolicyKey] || POLICY_PATHS.privacy;
+      case 'author':
+      case 'tag':
+        return buildPath({ page: currentView, value: listingValue });
+      case 'not-found':
+        return null; // keep the address the reader typed
+      default:
+        return `/${currentView}`;
+    }
+  }, [currentView, activeArticle, searchQuery, currentCategory, activeLegalPolicyType, listingValue]);
+
+  useEffect(() => {
+    if (applyingUrl.current) {
+      applyingUrl.current = false;
+      return;
+    }
+    if (!currentPath || pendingArticleId) return;
+    const here = window.location.pathname + window.location.search;
+    if (here === currentPath) return;
+    // Typing in search refines the same results page instead of adding history entries.
+    const replace = here.startsWith('/search') && currentPath.startsWith('/search');
+    window.history[replace ? 'replaceState' : 'pushState'](null, '', currentPath);
+  }, [currentPath, pendingArticleId]);
+
+  useDocumentHead(currentPath, currentView === 'article' ? activeArticle : null, currentView === 'not-found');
+
+  // Every view change starts at the top of the page.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [currentView, activeArticle?.id, currentCategory]);
 
   // Keyboard shortcut for Staff Login
   useEffect(() => {
@@ -803,21 +822,16 @@ function NewsPortalMain() {
 
   // Navigation handlers
   const handleSelectArticle = (article: NewsArticle) => {
+    setPendingArticleId(null);
     setActiveArticle(article);
     setCurrentView('article');
-    try {
-      window.history.pushState({ view: 'article', id: article.id }, '', `/article/${article.id}`);
-    } catch {}
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleBackToHome = () => {
     setCurrentView('home');
     setActiveArticle(null);
-    try {
-      window.history.pushState({ view: 'home' }, '', '/');
-    } catch {}
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSearchQuery('');
+    setCurrentCategory('all');
   };
 
   const handleOpenContactPage = () => {
@@ -856,10 +870,6 @@ function NewsPortalMain() {
   const handleOpenEPaper = () => {
     setCurrentView('epaper');
     setActiveArticle(null);
-    try {
-      window.history.pushState({ view: 'epaper' }, '', '#epaper');
-    } catch {}
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleScrollToLiveVideo = () => {
@@ -969,9 +979,40 @@ function NewsPortalMain() {
             setArticles((prev) => prev.map((a) => (a.id === art.id ? art : a)));
           }}
         />
+      ) : currentView === 'author' || currentView === 'tag' || currentView === 'videos' ? (
+        <ListingPageView
+          kind={currentView}
+          value={listingValue}
+          articles={articles}
+          portalSettings={portalSettings}
+          onSelectArticle={handleSelectArticle}
+          onBackToHome={handleBackToHome}
+        />
+      ) : currentView === 'not-found' ? (
+        <NotFoundView
+          latest={articles}
+          onSelectArticle={handleSelectArticle}
+          onBackToHome={handleBackToHome}
+          onSearch={(q) => {
+            setCurrentCategory('all');
+            setSearchQuery(q);
+            setCurrentView('home');
+          }}
+        />
+      ) : currentView === 'live-feed' && !(activeLiveBlog || liveBlogs[0]) ? (
+        <main id="main-content" className="kd-container kd-page">
+          <h1 className="kd-page-title">लाइव ख़बरें</h1>
+          <div className="kd-empty">
+            <p className="kd-empty__title">अभी कोई लाइव कवरेज नहीं चल रहा है।</p>
+            <p className="kd-meta">बड़ी ख़बर पर लाइव अपडेट शुरू होते ही वे यहाँ दिखेंगे।</p>
+            <button type="button" className="kd-btn kd-btn--primary" onClick={handleBackToHome}>
+              ताज़ा ख़बरें पढ़ें
+            </button>
+          </div>
+        </main>
       ) : currentView === 'live-feed' ? (
         <LiveFeedPageView
-          liveBlog={activeLiveBlog || liveBlogs[0] || undefined}
+          liveBlog={(activeLiveBlog || liveBlogs[0])!}
           allLiveBlogs={liveBlogs}
           onSelectLiveBlog={(blog) => setActiveLiveBlog(blog)}
           onBackToHome={handleBackToHome}

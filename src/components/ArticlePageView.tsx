@@ -192,32 +192,7 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
     }
   }, [article.id, article.reactions, article.likesCount, article.viewsCount]);
 
-  // Synchronize document Title & SEO Meta Tags with Admin Published Article data
-  useEffect(() => {
-    const originalTitle = document.title;
-    const pageTitle = `${article.seoTitle || article.title} - Khabri Dost`;
-    document.title = pageTitle;
-
-    const metaDesc = document.querySelector('meta[name="description"]');
-    const oldDesc = metaDesc ? metaDesc.getAttribute('content') : '';
-    if (metaDesc) {
-      metaDesc.setAttribute('content', article.seoDescription || article.summary || article.title);
-    }
-
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute('content', article.seoTitle || article.title);
-
-    const ogDesc = document.querySelector('meta[property="og:description"]');
-    if (ogDesc) ogDesc.setAttribute('content', article.seoDescription || article.summary || article.title);
-
-    const ogImage = document.querySelector('meta[property="og:image"]');
-    if (ogImage) ogImage.setAttribute('content', article.ogImage || article.imageUrl);
-
-    return () => {
-      document.title = originalTitle;
-      if (metaDesc && oldDesc) metaDesc.setAttribute('content', oldDesc);
-    };
-  }, [article.id, article.title, article.seoTitle, article.seoDescription, article.summary, article.imageUrl, article.ogImage]);
+  // <head> tags are set by useDocumentHead in App (same rules as the server).
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
@@ -1535,9 +1510,9 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
                   <div className="min-w-0 leading-tight">
                     <div className="flex items-center space-x-1.5 flex-wrap">
                       {articlePageConfig.showAuthorByline !== false && metaSettings.showAuthorName !== false && (
-                        <span className="font-bold text-slate-900 text-xs truncate">
+                        <a href={`/author/${encodeURIComponent(article.authorName)}`} className="font-bold text-slate-900 text-xs truncate hover:text-red-700 hover:underline">
                           {article.authorName}
-                        </span>
+                        </a>
                       )}
                       {articlePageConfig.showEditorByline !== false && article.editorName && (
                         <span className="text-[10px] text-slate-500 font-medium">
@@ -1646,9 +1621,9 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
                 <div className="min-w-0 leading-tight">
                   <div className="flex items-center space-x-2 flex-wrap min-w-0">
                     {articlePageConfig.showAuthorByline !== false && metaSettings.showAuthorName !== false && (
-                      <span className="font-bold text-slate-900 text-sm truncate">
+                      <a href={`/author/${encodeURIComponent(article.authorName)}`} className="font-bold text-slate-900 text-sm truncate hover:text-red-700 hover:underline">
                         {article.authorName}
-                      </span>
+                      </a>
                     )}
                     {articlePageConfig.showEditorByline !== false && article.editorName && (
                       <span className="text-[11px] text-slate-500 font-medium">
@@ -1854,12 +1829,13 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
               {article.tags.map((tag, idx) => {
                 const cleanTag = tag.replace(/^#/, '');
                 return (
-                  <span
+                  <a
                     key={idx}
-                    className="inline-flex items-center text-xs bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 px-2.5 py-1 rounded-full border border-slate-200 transition font-medium cursor-pointer"
+                    href={`/tag/${encodeURIComponent(cleanTag)}`}
+                    className="inline-flex items-center text-xs bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 px-2.5 py-1 rounded-full border border-slate-200 transition font-medium"
                   >
                     #{cleanTag}
-                  </span>
+                  </a>
                 );
               })}
             </div>
@@ -1907,9 +1883,11 @@ export const ArticlePageView: React.FC<ArticlePageViewProps> = ({
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center space-x-2 flex-wrap">
-                      <h4 className="font-bold text-slate-900 text-base sm:text-lg font-kd-headline leading-tight">
-                        {article.authorName}
-                      </h4>
+                      <h2 className="font-bold text-slate-900 text-base sm:text-lg font-kd-headline leading-tight">
+                        <a href={`/author/${encodeURIComponent(article.authorName)}`} className="hover:text-red-700 hover:underline">
+                          {article.authorName}
+                        </a>
+                      </h2>
                       {article.authorRole && (
                         <span className="text-[10px] sm:text-[11px] text-red-700 bg-red-50 border border-red-100 font-semibold px-2 py-0.5 rounded-full font-kd-meta">
                           {article.authorRole}

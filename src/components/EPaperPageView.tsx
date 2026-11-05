@@ -58,15 +58,6 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
-  // Synchronize document title
-  useEffect(() => {
-    const originalTitle = document.title;
-    document.title = `ई-पेपर (${formatHindiNewspaperDate(selectedDate)}) - खबरी दोस्त`;
-    return () => {
-      document.title = originalTitle;
-    };
-  }, [selectedDate]);
-
   // Read URL params on mount
   useEffect(() => {
     try {
