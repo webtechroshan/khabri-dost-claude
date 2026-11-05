@@ -1,0 +1,27 @@
+%% Khabri Dost — system architecture (current, commit 6c9b022). Dashed = proposed additions.
+flowchart LR
+  subgraph Browser["Reader / staff browser"]
+    SPA["React 19 SPA (src/App.tsx)"]
+    LS[("localStorage\nkd_portal_settings\nkd_staff_session\nkd_editorial_users")]
+  end
+  subgraph Server["Express server.ts"]
+    STATIC["index.html / dist assets"]
+    API["/api/ai/*, /api/citizen-news/*, /api/epaper/*, /api/social/*"]
+    SEO["/sitemap.xml /news-sitemap.xml /rss.xml /robots.txt"]
+    MEM[("In-memory: citizen submissions, sitemap registry, rate limits")]
+  end
+  subgraph Firebase
+    AUTH["Firebase Auth (Google)"]
+    FS[("Cloud Firestore\narticles, settings, users, media, live_blogs, ...")]
+  end
+  GEM["Google Gemini API"]
+  SPA -->|GET any path| STATIC
+  SPA <-->|reads/writes under firestore.rules| FS
+  SPA --> AUTH
+  SPA --> LS
+  SPA -->|no ID token today| API
+  API --> GEM
+  API --> MEM
+  SEO -->|REST| FS
+  API -.->|proposed: verify ID token + role| AUTH
+  STATIC -.->|proposed: per-URL head, real 404| SEO
