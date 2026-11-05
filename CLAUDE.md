@@ -14,6 +14,9 @@ Design blueprint and reports: `docs/design-blueprint/` (start with `00_START_HER
   2. `FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 node tests/e2e/seed-emulator.mjs`
   3. `FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 VITE_FIRESTORE_EMULATOR=127.0.0.1:8085 PORT=3420 npx tsx server.ts`
   4. `BASE_URL=http://localhost:3420 npm run test:e2e`
+  - Newsroom test: start the emulators with `--only firestore,auth`, add `VITE_AUTH_EMULATOR=127.0.0.1:9099` to the
+    server command, then `BASE_URL=http://localhost:3420 npm run test:newsroom` (signs in as seeded test staff).
+  - CI runs all of this: `.github/workflows/ci.yml` → `scripts/e2e-local.sh`.
 
 ## Rules that must not be broken
 
@@ -21,6 +24,7 @@ Design blueprint and reports: `docs/design-blueprint/` (start with `00_START_HER
   (`server/auth.ts`) and reads Firestore over REST under the same rules. Keep role lists identical in
   `firestore.rules` and `src/utils/roles.ts`.
 - Staff sign in with Google only; roles come from `staff/{email}` (owner emails are the bootstrap admins).
+- The admin is `src/components/newsroom/` (11 screens, one editor). Show only settings that change the public site.
 - Never render stored HTML without `sanitizeArticleHtml()` (`src/utils/sanitizeHtml.ts`). No regex sanitisers.
   Ad code goes through `AdCode` / `AdPlacement`.
 - Public views receive only `isArticlePubliclyVisible()` articles; public Firestore queries filter `status == "published"`.

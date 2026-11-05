@@ -4,6 +4,7 @@
 set -euo pipefail
 export FIRESTORE_EMULATOR_HOST="${FIRESTORE_EMULATOR_HOST:-127.0.0.1:8085}"
 export VITE_FIRESTORE_EMULATOR="$FIRESTORE_EMULATOR_HOST"
+export VITE_AUTH_EMULATOR="${FIREBASE_AUTH_EMULATOR_HOST:-127.0.0.1:9099}"
 PORT="${E2E_PORT:-3420}"
 
 node tests/e2e/seed-emulator.mjs
@@ -15,3 +16,4 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 BASE_URL="http://localhost:$PORT" node tests/e2e/matrix.mjs
+BASE_URL="http://localhost:$PORT" node tests/e2e/newsroom.mjs

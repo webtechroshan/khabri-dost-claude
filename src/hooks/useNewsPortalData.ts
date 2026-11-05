@@ -374,6 +374,19 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
   }, [isAdmin]);
 
   // Settings update handler
+  /**
+   * Save a settings patch and wait for Firestore (used by the newsroom so editors see real
+   * success or failure). Nested objects in the patch replace the stored ones.
+   */
+  const saveSettingsPatch = async (patch: Partial<PortalSettings>): Promise<void> => {
+    const updated = cleanPortalSettings({ ...portalSettings, ...patch } as PortalSettings);
+    setPortalSettings(updated);
+    try {
+      localStorage.setItem('kd_portal_settings', JSON.stringify(updated));
+    } catch {}
+    await savePortalSettings(updated);
+  };
+
   const handleUpdateSettings = (newSettings: Partial<PortalSettings>) => {
     setPortalSettings((prev) => {
       const updated = {
@@ -437,11 +450,15 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
   };
 
   // Article CRUD
-  /** Save an article. Errors are shown to the editor and re-thrown; nothing is faked locally. */
-  const handleSaveArticle = async (artData: Partial<NewsArticle>) => {
+  /** Save an article. Errors are shown to the editor and re-thrown; nothing is faked locally. Returns the id. */
+  const handleSaveArticle = async (artData: Partial<NewsArticle>): Promise<string> => {
     try {
-      if (artData.id) await updateArticle(artData.id, artData);
-      else await publishArticle(artData as any);
+      if (artData.id) {
+        await updateArticle(artData.id, artData);
+        return artData.id;
+      }
+      const created = await publishArticle(artData as any);
+      return created.id;
     } catch (e: any) {
       const msg = e?.code === 'permission-denied' ? 'Your role does not allow this change.' : e?.message || 'Unknown error';
       window.alert(`The article could not be saved: ${msg}`);
@@ -749,6 +766,7 @@ export function useNewsPortalData({ user, isAdmin, isStaff, isEditor = false, cu
     portalSettings,
     setPortalSettings,
     handleUpdateSettings,
+    saveSettingsPatch,
     mediaAssets,
     handleAddMedia,
     handleUpdateMedia,

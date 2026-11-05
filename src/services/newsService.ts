@@ -28,6 +28,7 @@ import {
   LiveBlogEvent,
   CitizenNewsSubmission,
   EditorialUser,
+  SubscriberItem,
 } from '../types/news';
 import { staffDocId } from '../utils/roles';
 import { INITIAL_NEWS } from '../data/seedNews';
@@ -1443,4 +1444,17 @@ export async function updateSubmission(id: string, patch: Partial<CitizenNewsSub
 
 export async function deleteSubmission(id: string): Promise<void> {
   await deleteDoc(doc(db, SUBMISSIONS_COLLECTION, id));
+}
+
+/* Newsletter subscribers (administrators only). */
+export function subscribeSubscribersFirestore(onItems: (items: SubscriberItem[]) => void) {
+  return onSnapshot(
+    query(collection(db, 'subscribers'), limit(2000)),
+    (snap) => {
+      const items: SubscriberItem[] = [];
+      snap.forEach((d) => items.push({ ...(d.data() as SubscriberItem), id: d.id }));
+      onItems(items.sort((a, b) => (b.subscribedAt || '').localeCompare(a.subscribedAt || '')));
+    },
+    () => onItems([])
+  );
 }

@@ -15,7 +15,8 @@
     "check": "npm run typecheck && npm run test && npm run build",
     "test:rules": "firebase emulators:exec --only firestore --project demo-khabri-dost \"vitest run --config vitest.rules.config.ts\"",
     "test:e2e": "node tests/e2e/matrix.mjs",
-    "test:e2e:local": "bash scripts/e2e-local.sh"
+    "test:e2e:local": "bash scripts/e2e-local.sh",
+    "test:newsroom": "node tests/e2e/newsroom.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

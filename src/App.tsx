@@ -16,6 +16,7 @@ import { SiteFooter } from './components/site/SiteFooter';
 import { HomeView } from './components/site/HomeView';
 import { ArticleView } from './components/site/ArticleView';
 import { categoryLabel } from './components/site/format';
+import { isOwnerEmail } from './utils/roles';
 const ArchivePageView = lazy(() => import('./components/ArchivePageView').then((m) => ({ default: m.ArchivePageView })));
 const EPaperPageView = lazy(() => import('./components/EPaperPageView').then((m) => ({ default: m.EPaperPageView })));
 
@@ -24,7 +25,6 @@ const PortalPopup = lazy(() => import('./components/PortalPopup').then((m) => ({
 import { NotificationToast } from './components/NotificationToast';
 
 // Navigation & Bars
-const AdminFrontendCustomizerBar = lazy(() => import('./components/AdminFrontendCustomizerBar').then((m) => ({ default: m.AdminFrontendCustomizerBar })));
 const QuickReadSlidePanel = lazy(() => import('./components/QuickReadSlidePanel').then((m) => ({ default: m.QuickReadSlidePanel })));
 
 // Modals
@@ -35,8 +35,7 @@ const EPaperModal = lazy(() => import('./components/EPaperModal').then((m) => ({
 const DailySudokuModal = lazy(() => import('./components/DailySudokuModal').then((m) => ({ default: m.DailySudokuModal })));
 const StaffLoginModal = lazy(() => import('./components/StaffLoginModal').then((m) => ({ default: m.StaffLoginModal })));
 const SubscriberPreferencesModal = lazy(() => import('./components/SubscriberPreferencesModal').then((m) => ({ default: m.SubscriberPreferencesModal })));
-const PublisherCMS = lazy(() => import('./components/PublisherCMS').then((m) => ({ default: m.PublisherCMS })));
-const AdminBackendPanel = lazy(() => import('./components/AdminBackendPanel').then((m) => ({ default: m.AdminBackendPanel })));
+const NewsroomApp = lazy(() => import('./components/newsroom/NewsroomApp').then((m) => ({ default: m.NewsroomApp })));
 
 // Types & Data
 import { NewsArticle, NewsCategory } from './types/news';
@@ -64,7 +63,7 @@ function shadeHex(hex: string, factor: number): string {
 }
 
 function NewsPortalMain() {
-  const { user, isStaff, isAdmin, isEditor, loading: authLoading } = useAuth();
+  const { user, isStaff, isAdmin, isEditor, loading: authLoading, staffSession, logoutStaff } = useAuth();
   const [currentCategory, setCurrentCategory] = useState<NewsCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [userCity, setUserCity] = useState<string>(() => {
@@ -95,7 +94,6 @@ function NewsPortalMain() {
 
   // Modals Visibility
   const [showAdminBackend, setShowAdminBackend] = useState(false);
-  const [showPublisherCMS, setShowPublisherCMS] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showReadLater, setShowReadLater] = useState(false);
   const [showEPaper, setShowEPaper] = useState(false);
@@ -127,6 +125,7 @@ function NewsPortalMain() {
     handleClearAllReadLater,
     portalSettings,
     handleUpdateSettings,
+    saveSettingsPatch,
     mediaAssets,
     handleAddMedia,
     handleUpdateMedia,
@@ -744,7 +743,7 @@ function NewsPortalMain() {
           settings={portalSettings}
           fontScale={fontSize}
           onOpen={handleSelectArticle}
-          onEdit={isStaff ? () => setShowAdminBackend(true) : undefined}
+          onEdit={isStaff ? (art) => (setAdminInitialTab(`editor:${art.id}`), setShowAdminBackend(true)) : undefined}
         />
       ) : currentView === 'author' || currentView === 'tag' || currentView === 'videos' ? (
         <ListingPageView
@@ -866,25 +865,6 @@ function NewsPortalMain() {
       {/* Overlays load on demand without hiding the page. */}
       <Suspense fallback={null}>
 
-      {/* Floating editorial button for staff */}
-      {isStaff && !isAdmin && (
-        <button
-          onClick={() => setShowAdminBackend(true)}
-          className="fixed bottom-5 right-5 z-40 bg-white hover:bg-slate-50 text-slate-900 p-3 rounded-full shadow-2xl border-2 border-red-600/50 flex items-center space-x-2 transition hover:scale-105 group cursor-pointer"
-          title="Open Editorial & Author Studio"
-        >
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-          <Sliders className="w-4 h-4 text-red-600 group-hover:rotate-45 transition-transform" />
-          <span className="text-xs font-bold font-sans pr-1 hidden sm:inline">Editor Desk</span>
-        </button>
-      )}
-
-      {/* Frontend Customizer Bar for Admin */}
-      <AdminFrontendCustomizerBar
-        onOpenSettingsTab={(tab) => openAdminStudio(tab)}
-        onOpenAdminBackend={() => openAdminStudio('dashboard')}
-        onNewArticle={() => openAdminStudio('articles')}
-      />
 
       {/* Push Notification Toast */}
       <NotificationToast
@@ -909,62 +889,54 @@ function NewsPortalMain() {
       />
 
       {/* Admin Backend Studio */}
-      {showAdminBackend && (
-        <AdminBackendPanel
-          initialTab={adminInitialTab}
+      {showAdminBackend && isStaff && user && (
+        <NewsroomApp
+          initialScreen={adminInitialTab}
           onClose={() => setShowAdminBackend(false)}
+          onSignOut={() => {
+            setShowAdminBackend(false);
+            logoutStaff();
+          }}
           articles={staffArticles}
-          portalSettings={portalSettings}
-          onUpdateSettings={handleUpdateSettings}
-          onSaveArticle={handleSaveArticle}
-          onDeleteArticle={handleDeleteArticle}
-          subscribers={subscribers}
-          onAddSubscriber={handleAddSubscriber}
-          onDeleteSubscriber={handleDeleteSubscriber}
-          notifications={notifications}
-          onSendNotification={handleSendNotification}
-          onSelectArticleToView={(art) => {
+          settings={portalSettings}
+          saveSettings={saveSettingsPatch}
+          saveArticle={handleSaveArticle}
+          deleteArticle={handleDeleteArticle}
+          media={mediaAssets}
+          addMedia={handleAddMedia}
+          updateMedia={handleUpdateMedia}
+          deleteMedia={handleDeleteMedia}
+          liveBlogs={liveBlogs}
+          addLiveBlog={handleAddLiveBlog}
+          updateLiveBlog={handleUpdateLiveBlog}
+          deleteLiveBlog={handleDeleteLiveBlog}
+          staff={editorialUsers}
+          addStaff={handleAddEditorialUser}
+          updateStaff={handleUpdateEditorialUser}
+          deleteStaff={handleDeleteEditorialUser}
+          inquiries={contactInquiries}
+          updateInquiry={handleUpdateInquiryStatus}
+          deleteInquiry={handleDeleteInquiry}
+          submissions={citizenSubmissions}
+          updateSubmission={handleUpdateCitizenSubmissionStatus}
+          deleteSubmission={handleDeleteCitizenSubmission}
+          me={{
+            uid: user.uid,
+            email: user.email || '',
+            name: staffSession?.name || user.displayName || user.email || 'Editor',
+            role: staffSession?.role || 'reporter',
+            isEditor,
+            isAdmin,
+            isOwner: isOwnerEmail(user.email),
+          }}
+          viewArticle={(art) => {
             setShowAdminBackend(false);
             handleSelectArticle(art);
           }}
-          mediaAssets={mediaAssets}
-          onAddMedia={handleAddMedia}
-          onUpdateMedia={handleUpdateMedia}
-          onDeleteMedia={handleDeleteMedia}
-          editorialUsers={editorialUsers}
-          onAddEditorialUser={handleAddEditorialUser}
-          onUpdateEditorialUser={handleUpdateEditorialUser}
-          onDeleteEditorialUser={handleDeleteEditorialUser}
-          liveBlogs={liveBlogs}
-          onAddLiveBlog={handleAddLiveBlog}
-          onUpdateLiveBlog={handleUpdateLiveBlog}
-          onDeleteLiveBlog={handleDeleteLiveBlog}
-          onOpenLiveViewer={(blog) => {
-            setActiveLiveBlog(blog);
-            setCurrentView('live-feed');
-            setShowAdminBackend(false);
-          }}
-          inquiries={contactInquiries}
-          onUpdateInquiryStatus={handleUpdateInquiryStatus}
-          onDeleteInquiry={handleDeleteInquiry}
-          citizenSubmissions={citizenSubmissions}
-          onUpdateCitizenSubmissionStatus={handleUpdateCitizenSubmissionStatus}
-          onDeleteCitizenSubmission={handleDeleteCitizenSubmission}
         />
       )}
 
       {/* Publisher CMS */}
-      {showPublisherCMS && (
-        <PublisherCMS
-          onClose={() => setShowPublisherCMS(false)}
-          articles={staffArticles}
-          onArticlePublished={() => {}}
-          onSelectArticleToView={(art) => handleSelectArticle(art)}
-          apiConfig={portalSettings.apiConfig}
-          mediaLibrary={mediaAssets}
-          onAddMedia={handleAddMedia}
-        />
-      )}
 
       {/* Bookmarks Modal */}
       {showBookmarks && (

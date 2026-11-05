@@ -28,8 +28,10 @@
 | P1-10 | Code splitting | Done | `src/App.tsx` | initial JS **≈330 KB gzip** (was ≈985 KB) |
 | P1-11 | Reader submissions stored in Firestore | Done | `submissions` collection | rules tests |
 | — | Fewer billed reads per visit (newest 60 published articles, media only for staff, no connection-test read) | Done | `newsService.ts` | code |
-| P2-1 | Admin shell + 11 screens | **Not started** | — | — |
-| P2-2 … P2-8 | Single editor, server scheduling, Storage uploads, live timeline, pagination, corrections log, CI | **Not started** (partly: corrections shown on articles; Firestore index added) | — | — |
+| P2-1 | Newsroom (admin) rebuilt: 11 screens in one shell — Dashboard, News, Write article, Live coverage, Inbox, Media, Advertisements, SEO & sitemaps, Settings, Audience, Users & roles. English UI, role-aware navigation, only settings that change the site. Replaces the 29-tab panel. | Done | `src/components/newsroom/` | `tests/e2e/newsroom.mjs` (emulator sign-in: admin at 1366 and 390, reporter, reader) |
+| P2-2 | One article editor: visual/HTML body, deck, key points, image with alt/credit/caption, byline, SEO fields with search preview and optional AI suggestions, publishing checklist, role-aware actions (reporters: draft / submit for review; editors: publish / schedule / unpublish), revisions with restore, reader-visible corrections | Done | `src/components/newsroom/ArticleEditor.tsx` | newsroom test; rules tests |
+| P2-8 | CI on every pull request: typecheck, unit tests, build, Firestore rules, public browser matrix and newsroom test (emulators only) | Done | `.github/workflows/ci.yml`, `scripts/e2e-local.sh` | Runs on GitHub; not run inside this sandbox |
+| P2-3 … P2-7 | Server scheduling, Storage uploads, live timeline redesign, category pagination, corrections log page | **Not started** (corrections are shown on articles; scheduled posts publish while an editor has the newsroom open) | — | — |
 
 ## Test results (this session)
 
@@ -40,6 +42,7 @@
 | Firestore rules (emulator) | `npm run test:rules` | **15 passed** |
 | Production build | `npm run build` | Pass |
 | Browser matrix (15 pages × 14 widths, Chromium emulation, local server + emulator) | `npm run test:e2e` | **2,100 / 2,100 checks passed** |
+| Newsroom (admin) test, Auth + Firestore emulators | `npm run test:newsroom` | **Pass** (11 screens, publish, settings, ads, add member, reporter limits, reader refused) |
 
 Browser checks per page and width: HTTP status (404 for unknown), no horizontal overflow, exactly one H1, phone
 header ≤ 100px, desktop header ≤ 160px, at most one fixed bottom bar on phones, no text under 12px (except the ad
@@ -47,7 +50,7 @@ label), skip-link target present, light background under OS dark mode, no page e
 
 ## Removed (no longer reachable after the redesign)
 
-Old header, footer, article page, bottom nav, spotlight slider, tickers, trending section, video/photo sections,
+Old admin panel (29 tabs), publisher CMS, rich-post editor, settings modal, admin customiser bar, the AI/trends/bulk/typography/spotlight admin tabs, old header, footer, article page, bottom nav, spotlight slider, tickers, trending section, video/photo sections,
 gold/rashifal/sudoku widgets, opinion poll, audio player, reactions, e-paper clipping modal, typography customiser
 and three unused admin tabs. Git history keeps them. Readers lose: emoji reactions, text-to-speech, the rashifal
 widget and the article e-paper clipping. These were marked OPTIONAL in the blueprint and can be rebuilt in the new
@@ -80,7 +83,8 @@ enabling billing or watching usage in the Firebase console.
 
 ## Not verified
 
-- Anything that needs Google sign-in (admin, editor, publishing) — manual test required.
+- Real Google sign-in (the newsroom is tested through the Auth emulator; a real Google account should be tried once after deployment).
+- AI suggestions through the server (needs a real Firebase ID token and a Gemini key; the emulator token is rejected by design).
 - Physical devices and real network speeds (emulation only).
 - Production behaviour and production data (never accessed for writing; deploy is the owner's step).
 - Current Google documentation (network policy blocks it); Search and Discover outcomes are not promised.
