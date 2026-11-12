@@ -1,0 +1,12 @@
+%% Proposed role permissions (role names as in firestore.rules)
+flowchart TB
+  SA["super_admin"] --> A["admin"]
+  A --> ED["editor"]
+  ED --> RP["reporter"]
+  RP --> RD["reader"]
+  RD:::r --- p0["Read published, bookmarks, read-later, comments"]
+  RP --- p1["Create/edit own drafts, submit for review, upload media, own live posts"]
+  ED --- p2["Edit any article, publish/schedule/unpublish, read submissions & inquiries"]
+  A --- p3["Delete articles, ads, homepage, navigation, branding, users (not super admins)"]
+  SA --- p4["Integrations, API keys (server env), backups, manage admins"]
+  classDef r fill:#fff

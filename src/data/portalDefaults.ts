@@ -38,6 +38,7 @@ import {
   MediaAsset,
   MediaFolder,
 } from '../types/news';
+import { DEMO_CONTENT } from '../utils/articleVisibility';
 
 export interface TypographyPresetConfig {
   id: string;
@@ -101,8 +102,8 @@ export const TYPOGRAPHY_PRESETS: TypographyPresetConfig[] = [
   },
   {
     id: 'dainik_jagran',
-    name: 'Dainik Jagran Editorial',
-    hindiName: 'दैनिक जागरण अख़बारी शैली',
+    name: 'Classic Editorial',
+    hindiName: 'क्लासिक अख़बारी शैली',
     description: 'बोल्ड क्लासिक अख़बारी हेडलाइंस, अत्यंत सुपाठ्य बॉडी फॉन्ट व संतुलित स्पेसिंग',
     badge: 'EDITORIAL BESTSELLER',
     settings: {
@@ -126,8 +127,8 @@ export const TYPOGRAPHY_PRESETS: TypographyPresetConfig[] = [
   },
   {
     id: 'amar_ujala',
-    name: 'Amar Ujala Contemporary',
-    hindiName: 'अमर उजाला बोल्ड समकालीन',
+    name: 'Bold Contemporary',
+    hindiName: 'बोल्ड समकालीन',
     description: 'सशक्त व तीक्ष्ण हेडलाइंस, हाई-इम्पैक्ट कार्ड टाइटल्स और आरामदेह बॉडी टेक्स्ट',
     badge: 'HIGH IMPACT',
     settings: {
@@ -150,8 +151,8 @@ export const TYPOGRAPHY_PRESETS: TypographyPresetConfig[] = [
   },
   {
     id: 'bbc_hindi',
-    name: 'BBC Hindi Modern Clean',
-    hindiName: 'बीबीसी हिंदी क्लीन न्यूट्रल',
+    name: 'Modern Clean',
+    hindiName: 'क्लीन न्यूट्रल',
     description: 'आधुनिक कॉर्पोरेट न्यूट्रल स्टाइल, अंतर्राष्ट्रीय मानकों के अनुरूप न्यूनतम थकावट',
     badge: 'BBC STYLE',
     settings: {
@@ -174,8 +175,8 @@ export const TYPOGRAPHY_PRESETS: TypographyPresetConfig[] = [
   },
   {
     id: 'navbharat_times',
-    name: 'Navbharat Times Classical',
-    hindiName: 'नवभारत टाइम्स क्लासिक सेरिफ',
+    name: 'Classical Serif',
+    hindiName: 'क्लासिक सेरिफ',
     description: 'पारंपरिक नोटो सेरिफ हेडलाइंस व संपादकीय गरिमा, वरिष्ठ पाठकों के लिए श्रेष्ठ',
     badge: 'CLASSIC SERIF',
     settings: {
@@ -223,13 +224,14 @@ export const TYPOGRAPHY_PRESETS: TypographyPresetConfig[] = [
 ];
 
 export const DEFAULT_POPUP_CONFIG: PortalPopupConfig = {
-  enabled: true,
+  // Off by default. An editor turns it on with a real story.
+  enabled: false,
   type: 'breaking_alert',
-  title: '🔴 बड़ी ख़बर: गगनयान क्रू मॉड्यूल का सफल परीक्षण!',
-  description: 'इसरो ने रचा नया इतिहास। भारतीय अंतरिक्ष यात्रियों की सुरक्षा प्रणाली का सफल ट्रायल संपन्न। विस्तृत रिपोर्ट व विश्लेषण पढ़ें।',
-  imageUrl: 'https://images.unsplash.com/photo-1517976487502-5f714249a5b4?w=800&auto=format&fit=crop&q=80',
-  ctaText: 'पूरी ख़बर अभी पढ़ें →',
-  ctaLink: 'news-1',
+  title: '',
+  description: '',
+  imageUrl: '',
+  ctaText: '',
+  ctaLink: '',
   delaySeconds: 2,
   showFrequency: 'once_session',
 };
@@ -298,7 +300,7 @@ export const DEFAULT_ARTICLE_SIDEBAR_WIDGETS: ArticleSidebarWidgets = {
   showTrendingNews: true,
   showEditorPicks: true,
   showNewsletterSubscribe: true,
-  showOpinionPoll: true,
+  showOpinionPoll: false,
   showEPaperPromo: true,
   showMarketGlance: false,
   showAuthorBio: true,
@@ -323,19 +325,20 @@ export const DEFAULT_ARTICLE_SIDEBAR_WIDGETS: ArticleSidebarWidgets = {
   trendingStoriesCount: 5, // Top 5 trending stories
   trendingCategoryFilter: 'all', // All categories or specific
   trendingSlideSpeed: 3500, // 3.5 seconds per slide
-  pollQuestion: 'क्या 2026 में डिजिटल मीडिया पारंपरिक प्रिंट अखबारों से आगे निकल जाएगा?',
-  pollOptionA: 'हाँ, पूरी तरह डिजिटल होगा',
-  pollOptionB: 'नहीं, प्रिंट की विश्वसनीयता बनी रहेगी',
-  pollOptionC: 'कुछ हद तक असर पड़ेगा',
-  pollOptionD: 'कह नहीं सकते / तटस्थ',
+  pollQuestion: '',
+  pollOptionA: '',
+  pollOptionB: '',
+  pollOptionC: '',
+  pollOptionD: '',
   // Gold Rate Widget Defaults
-  showGoldRate: true,
-  goldRateWidgetTitle: 'आज के सोने-चांदी का भाव',
-  goldRateCity: 'दिल्ली (Delhi NCR)',
-  goldRate24k: 78450,
-  goldRate22k: 71920,
-  silverRate1kg: 92500,
-  goldRateUpdateDate: 'आज ताज़ा भाव',
+  // Shown only when an editor enters today's rates and date.
+  showGoldRate: false,
+  goldRateWidgetTitle: 'सोने-चांदी का भाव',
+  goldRateCity: '',
+  goldRate24k: 0,
+  goldRate22k: 0,
+  silverRate1kg: 0,
+  goldRateUpdateDate: '',
   // Daily Rashifal Widget Defaults
   showRashifal: true,
   rashifalWidgetTitle: 'दैनिक राशिफल',
@@ -433,14 +436,15 @@ export const DEFAULT_ARTICLE_BANNER_BREAKPOINTS: AdResponsiveBreakpoints = {
 };
 
 export const DEFAULT_FOOTER_BANNER_AD_CONFIG: FooterBannerAdConfig = {
-  enabled: true,
+  // No ad until the owner configures a real one.
+  enabled: false,
   type: 'image',
-  desktopImageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&auto=format&fit=crop&q=80',
-  mobileImageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=640&auto=format&fit=crop&q=80',
-  targetUrl: '#contact',
-  title: 'खबरी दोस्त डिजिटल न्यूज़ नेटवर्क • टेस्टिंग विज्ञापन बैनर (Testing Ad Banner)',
-  subTitle: '5 लाख+ पाठकों तक अपने ब्रांड का प्रचार करें | विशेष फेस्टिव छूट 30% ऑफ',
-  altText: 'प्रायोजित टेस्टिंग विज्ञापन बैनर (Testing Banner Ad)',
+  desktopImageUrl: '',
+  mobileImageUrl: '',
+  targetUrl: '',
+  title: '',
+  subTitle: '',
+  altText: '',
   scriptCode: '',
 };
 
@@ -457,9 +461,9 @@ export const DEFAULT_MOBILE_STICKY_BAR_CONFIG: MobileStickyBarConfig = {
   },
   showShareLabel: true,
   adType: 'image',
-  adImageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=640&auto=format&fit=crop&q=80',
-  adTargetUrl: '#contact',
-  adAltText: 'खबरी दोस्त मीडिया नेटवर्क प्रायोजित विज्ञापन',
+  adImageUrl: '',
+  adTargetUrl: '',
+  adAltText: '',
   adScriptCode: '',
   adHeightPx: 50,
   dismissible: true,
@@ -469,11 +473,11 @@ export const DEFAULT_MOBILE_STICKY_BAR_CONFIG: MobileStickyBarConfig = {
 export const DEFAULT_DESKTOP_STICKY_AD_CONFIG: DesktopStickyAdConfig = {
   enabled: false,
   type: 'image',
-  imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&auto=format&fit=crop&q=80',
-  targetUrl: '#contact',
-  title: 'Khabri Dost Media • Desktop Sponsor Leaderboard',
-  subTitle: 'Connect with 500,000+ informed readers across India | Special Editorial Partner Rate',
-  altText: 'Khabri Dost Desktop Sticky Advertisement',
+  imageUrl: '',
+  targetUrl: '',
+  title: '',
+  subTitle: '',
+  altText: '',
   scriptCode: '',
   dismissible: true,
   widthPx: 728,
@@ -614,7 +618,7 @@ export const DEFAULT_TRENDING_CONFIG: TrendingSectionConfig = {
   displayStyle: 'hero_grid',
   itemCount: 8,
   showRankBadges: true,
-  showViewCounts: true,
+  showViewCounts: false,
   showFireBadge: true,
   showCategoryTag: true,
   showReadTime: true,
@@ -686,30 +690,30 @@ export const DEFAULT_ARTICLE_PAGE_CONFIG: ArticlePageConfig = {
 
 export const DEFAULT_SIDEBAR_ADS_CONFIG: SidebarAdsConfig = {
   topSlot: {
-    enabled: true,
+    enabled: false,
     adType: 'private',
-    bannerUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&auto=format&fit=crop&q=80',
-    bannerLink: '#contact',
-    bannerTitle: 'शीर्ष साइडबार विज्ञापन (Top Slot) • खबरी दोस्त बिजनेस नेटवर्क',
-    altText: 'Top Sidebar Advertisement',
+    bannerUrl: '',
+    bannerLink: '',
+    bannerTitle: '',
+    altText: '',
     breakpoints: DEFAULT_SIDEBAR_AD_BREAKPOINTS,
   },
   middleSlot: {
-    enabled: true,
+    enabled: false,
     adType: 'private',
-    bannerUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
-    bannerLink: '#contact',
-    bannerTitle: 'मध्य साइडबार स्पॉन्सरशिप (Middle Slot) • विशेष ब्रांड प्रमोशन',
-    altText: 'Middle Sidebar Advertisement',
+    bannerUrl: '',
+    bannerLink: '',
+    bannerTitle: '',
+    altText: '',
     breakpoints: DEFAULT_SIDEBAR_AD_BREAKPOINTS,
   },
   bottomSlot: {
-    enabled: true,
+    enabled: false,
     adType: 'private',
-    bannerUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop&q=80',
-    bannerLink: '#contact',
-    bannerTitle: 'निचला साइडबार पार्टनरशिप (Bottom Slot) • डिजिटल एडवरटाइजिंग',
-    altText: 'Bottom Sidebar Advertisement',
+    bannerUrl: '',
+    bannerLink: '',
+    bannerTitle: '',
+    altText: '',
     breakpoints: DEFAULT_SIDEBAR_AD_BREAKPOINTS,
   },
   globalBreakpoints: DEFAULT_SIDEBAR_AD_BREAKPOINTS,
@@ -729,8 +733,8 @@ export const DEFAULT_GOOGLE_TRENDS_CONFIG: GoogleTrendsConfig = {
   category: 'all',
   autoSync: true,
   refreshIntervalMinutes: 30,
-  lastFetchedAt: 'अभी-अभी',
-  customKeywords: ['बजट 2026', 'क्रिकेट लाइव स्कोर', 'सोना चांदी भाव'],
+  lastFetchedAt: '',
+  customKeywords: [],
   apiKey: '',
 };
 
@@ -748,9 +752,9 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
   footerLogoUrl: '',
   faviconUrl: '',
   contactEmail: 'khabridost.com@gmail.com',
-  contactAddress: 'प्रेस एंक्लेव, कनाट प्लेस, नई दिल्ली - 110001',
-  contactPhone: '+91 11 2345 6789',
-  rniNumber: 'DELHIN/2024/84920',
+  contactAddress: '',
+  contactPhone: '',
+  rniNumber: '',
   showRniNumber: false,
   footerTheme: 'light',
   footerAboutHeading: 'खबरी दोस्त • निष्पक्ष पत्रकारिता का संकल्प',
@@ -758,7 +762,7 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
   footerBrandingPartnerName: 'iTree Network Solutions',
   footerBrandingPartnerUrl: 'https://itreenet.com',
   footerBottomName: 'खबरी दोस्त डिजिटल न्यूज़ नेटवर्क',
-  whatsappNewsBulletinUrl: 'https://whatsapp.com/channel/example',
+  whatsappNewsBulletinUrl: '',
   whatsappNewsBulletinText: 'WhatsApp News Bulletin (WhatsApp Community Channel)',
   headerShowLiveTv: true,
   headerShowEPaper: true,
@@ -768,62 +772,30 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
   headerShowSearch: true,
   headerShowAdminButton: true,
   headerShowLiveCoverage: true,
-  headerShowLanguageEditions: true,
+  headerShowLanguageEditions: false,
   languageEditions: [
     {
       id: 'edition-hi',
-      name: 'हिंदी (मुख्य)',
+      name: 'हिंदी',
       langCode: 'hi',
-      icon: '🇮🇳',
-      url: 'https://khabridost.com',
+      icon: '',
+      url: '/',
       openInNewTab: false,
       enabled: true,
       isCurrent: true,
     },
-    {
-      id: 'edition-en',
-      name: 'English Edition',
-      langCode: 'en',
-      icon: '🌐',
-      url: 'https://en.khabridost.com',
-      openInNewTab: true,
-      enabled: true,
-      isCurrent: false,
-    },
-    {
-      id: 'edition-pa',
-      name: 'ਪੰਜਾਬੀ (Punjabi)',
-      langCode: 'pa',
-      icon: '🌾',
-      url: 'https://punjabi.khabridost.com',
-      openInNewTab: true,
-      enabled: true,
-      isCurrent: false,
-    },
   ],
   socialLinks: {
-    whatsappChannel: 'https://whatsapp.com/channel/example',
-    telegramChannel: 'https://t.me/example',
-    facebook: 'https://facebook.com',
-    twitter: 'https://x.com',
-    youtube: 'https://youtube.com',
-    instagram: 'https://instagram.com',
-    googleNews: 'https://news.google.com',
+    // Filled in by the owner; empty links are hidden on the site.
+    whatsappChannel: '',
+    telegramChannel: '',
+    facebook: '',
+    twitter: '',
+    youtube: '',
+    instagram: '',
+    googleNews: '',
   },
-  customSocialChannels: [
-    {
-      id: 'soc-threads',
-      platform: 'Threads',
-      url: 'https://threads.net/@khabridost',
-      enabled: true,
-    },
-    {
-      id: 'soc-linkedin',
-      platform: 'LinkedIn',
-      url: 'https://linkedin.com/company/khabridost',
-      enabled: true,
-    },
-  ],
+  customSocialChannels: [],
   navCategoryOrder: [
     'national',
     'state',
@@ -896,14 +868,8 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
 1. शिकायत निवारण तंत्र (Grievance Redressal Mechanism):
 खबरी दोस्त (Khabri Dost) पोर्टल पर प्रकाशित किसी भी समाचार, लेख, फोटो अथवा वीडियो से संबंधित यदि किसी पाठक, नागरिक अथवा संगठन को कोई शिकायत (तथ्यात्मक त्रुटि, मानहानि, गोपनीयता उल्लंघन, या आचार संहिता उल्लंघन) है, तो वह हमारे प्राधिकृत शिकायत निवारण अधिकारी के समक्ष अपनी औपचारिक शिकायत दर्ज करा सकते हैं।
 
-2. नियुक्त शिकायत निवारण अधिकारी का विवरण (Grievance Redressal Officer):
-- नाम व पदनाम: श्री राजेश कुमार शर्मा (वरिष्ठ संपादकीय निदेशक एवं शिकायत निवारण अधिकारी)
-- संगठन: खबरी दोस्त डिजिटल मीडिया नेटवर्क (Khabri Dost Digital News)
-- पंजीकृत कार्यालय: प्रेस एंक्लेव, कनाट प्लेस, नई दिल्ली - 110001
-- आधिकारिक शिकायत ईमेल: grievance@khabridost.com
-- वैकल्पिक संपर्क ईमेल: khabridost.com@gmail.com
-- हेल्पलाइन फोन: +91 11 2345 6789
-- कार्य दिवस व समय: सोमवार से शनिवार, प्रातः 10:00 बजे से सायं 06:00 बजे तक (IST)
+2. शिकायत निवारण अधिकारी (Grievance Redressal Officer):
+शिकायत निवारण अधिकारी का नाम, पदनाम और डाक पता प्रकाशक द्वारा यहां प्रकाशित किया जाएगा। तब तक शिकायतें इस ईमेल पर भेजें: khabridost.com@gmail.com
 
 3. शिकायत दर्ज करने की प्रक्रिया (Filing Procedure):
 शिकायतकर्ता को अपनी शिकायत में निम्नलिखित अनिवार्य विवरण प्रदान करना होगा:
@@ -947,7 +913,7 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
 
 7. डेटा संबंधी अधिकारों हेतु संपर्क (Contact Information):
 यदि इस गोपनीयता नीति के संबंध में आपके कोई प्रश्न हैं अथवा आप अपने डेटा को हटाने का अनुरोध करना चाहते हैं, तो कृपया हमारे डेटा संरक्षण डेस्क पर संपर्क करें:
-ईमेल: khabridost.com@gmail.com | डाक पता: प्रेस एंक्लेव, कनाट प्लेस, नई दिल्ली - 110001`,
+ईमेल: khabridost.com@gmail.com`,
 
     termsOfService: `खबरी दोस्त (Khabri Dost) - नियम एवं शर्तें (Terms of Service)
 
@@ -1024,8 +990,7 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
 (च) शपथपूर्वक यह बयान कि नोटिस में दी गई जानकारी सत्य है और आप कॉपीराइट के वैधानिक स्वामी हैं।
 
 3. प्राधिकृत विधिक एवं कॉपीराइट डेस्क (Designated Legal Agent):
-- ईमेल: legal@khabridost.com | khabridost.com@gmail.com
-- डाक पता: विधिक अनुभाग, खबरी दोस्त मीडिया नेटवर्क, प्रेस एंक्लेव, कनाट प्लेस, नई दिल्ली - 110001
+- ईमेल: khabridost.com@gmail.com
 - संज्ञान समयसीमा: वैध नोटिस प्राप्ति के 48 घंटे के भीतर समीक्षा कर उल्लंघनकारी सामग्री को हटा दिया जाता है।`,
 
     cookiePolicy: `खबरी दोस्त (Khabri Dost) - कुकीज़ एवं डेटा ट्रैकिंग नीति (Cookie Policy)
@@ -1048,7 +1013,7 @@ export const DEFAULT_HEADER_FOOTER_SETTINGS: HeaderFooterSettings = {
 
 5. संपर्क एवं सहायता (Cookie Inquiries):
 यदि इस कुकी नीति के संबंध में आपके पास कोई प्रश्न है, तो आप हमारे तकनीकी सहायता डेस्क पर संपर्क कर सकते हैं:
-ईमेल: support@khabridost.com | khabridost.com@gmail.com`,
+ईमेल: khabridost.com@gmail.com`,
   },
 };
 
@@ -1066,12 +1031,13 @@ export const DEFAULT_HOMEPAGE_SECTIONS: HomepageSectionsConfig = {
 };
 
 export const DEFAULT_GOOGLE_SERVICES: GoogleServicesConfig = {
-  googleAnalyticsId: 'G-KD2026IN',
-  searchConsoleVerification: 'google-site-verification=kd_news_portal_master_2026_verified',
-  googleTagManagerId: 'GTM-KD2026X',
-  adsenseClientId: 'ca-pub-9840284729482910',
-  adsenseAutoAds: true,
-  adsenseStatus: 'active',
+  // Real IDs are entered by the owner in Admin › Integrations.
+  googleAnalyticsId: '',
+  searchConsoleVerification: '',
+  googleTagManagerId: '',
+  adsenseClientId: '',
+  adsenseAutoAds: false,
+  adsenseStatus: 'pending',
 };
 
 export const DEFAULT_SPEED_WEB_VITALS: SpeedAndWebVitalsConfig = {
@@ -1082,7 +1048,7 @@ export const DEFAULT_SPEED_WEB_VITALS: SpeedAndWebVitalsConfig = {
   targetLcpMs: 1200,
   targetFidMs: 45,
   targetCls: 0.02,
-  currentScore: 98,
+  currentScore: 0, // not measured
 };
 
 export const DEFAULT_ADVANCED_SEO: AdvancedSeoConfig = {
@@ -1095,9 +1061,9 @@ export const DEFAULT_ADVANCED_SEO: AdvancedSeoConfig = {
   breadcrumbSchema: true,
   robotsDirectives: 'User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /#login\nSitemap: https://khabridost.com/sitemap.xml',
   brokenLinkCheck: {
-    totalChecked: 142,
+    totalChecked: 0,
     brokenCount: 0,
-    lastAuditTime: new Date().toISOString(),
+    lastAuditTime: '',
     status: 'healthy',
   },
 };
@@ -1122,75 +1088,21 @@ export const DEFAULT_API_CONFIG: ApiConfiguration = {
 };
 
 export const DEFAULT_EPAPER_SETTINGS: EPaperSettings = {
-  customPdfUrl: '/assets/aistudio/Dainik_Jagran_National_20261021.pdf',
-  customPdfTitle: 'खबरी दोस्त • दैनिक राष्ट्रीय समाचार पत्र',
-  customPdfEdition: 'राष्ट्रीय संस्करण (नई दिल्ली)',
-  customPdfDate: '2026-10-21',
-  customPdfPageCount: 15,
-  featuredHeadline: 'गगनयान मिशन के क्रू मॉड्यूल का सफल परीक्षण, अंतरिक्ष में भारत की ऐतिहासिक छलांग',
+  // Empty until the newsroom uploads its own edition PDF.
+  customPdfUrl: '',
+  customPdfTitle: '',
+  customPdfEdition: '',
+  customPdfDate: '',
+  customPdfPageCount: 0,
+  featuredHeadline: '',
   allowDownload: true,
   allowShare: true,
   allowPrint: true,
-  price: '₹ 4.50',
-  issueNumber: 'वर्ष 1 • अंक 245',
+  price: '',
+  issueNumber: '',
   activeEditionCode: 'national',
-  activeEditionDate: '2026-10-21',
-  editionsList: [
-    {
-      id: 'edition_national_today',
-      title: 'दैनिक खबरी दोस्त • राष्ट्रीय संस्करण',
-      date: '2026-10-21',
-      editionName: 'राष्ट्रीय संस्करण (नई दिल्ली)',
-      editionCode: 'national',
-      pdfUrl: '/assets/aistudio/Dainik_Jagran_National_20261021.pdf',
-      pdfFileName: 'Dainik_Jagran_National_20261021.pdf',
-      pdfFileSize: '28.6 MB',
-      pageCount: 15,
-      leadHeadline: "'रिजीम चेंज' से परिस्थिति न कभी बदली है, न अब बदलेगी : भागवत",
-      price: '₹ 4.50',
-      issueNumber: 'वर्ष 1 • अंक 245',
-      status: 'published',
-      allowDownload: true,
-      allowPrint: true,
-      createdAt: '2026-10-21T00:00:00.000Z',
-    },
-    {
-      id: 'edition_national_yesterday',
-      title: 'दैनिक खबरी दोस्त • राष्ट्रीय संस्करण (संग्रह)',
-      date: '2026-10-20',
-      editionName: 'राष्ट्रीय संस्करण (नई दिल्ली)',
-      editionCode: 'national',
-      pdfUrl: '/assets/aistudio/Dainik_Jagran_National_20261021.pdf',
-      pdfFileName: 'Dainik_Jagran_National_20261020.pdf',
-      pdfFileSize: '28.6 MB',
-      pageCount: 15,
-      leadHeadline: 'भारत और वैश्विक अर्थव्यवस्था में नई तकनीकी साझेदारी',
-      price: '₹ 4.50',
-      issueNumber: 'वर्ष 1 • अंक 244',
-      status: 'published',
-      allowDownload: true,
-      allowPrint: true,
-      createdAt: '2026-10-20T00:00:00.000Z',
-    },
-    {
-      id: 'edition_up_today',
-      title: 'दैनिक खबरी दोस्त • उत्तर प्रदेश एवं उत्तराखंड',
-      date: '2026-10-21',
-      editionName: 'उत्तर प्रदेश एवं उत्तराखंड संस्करण',
-      editionCode: 'up',
-      pdfUrl: '/assets/aistudio/Dainik_Jagran_National_20261021.pdf',
-      pdfFileName: 'Dainik_Jagran_UP_20261021.pdf',
-      pdfFileSize: '28.6 MB',
-      pageCount: 15,
-      leadHeadline: 'उत्तर प्रदेश में औद्योगिक निवेश और बुनियादी ढांचा विस्तार को नई गति',
-      price: '₹ 4.00',
-      issueNumber: 'वर्ष 1 • अंक 245',
-      status: 'published',
-      allowDownload: true,
-      allowPrint: true,
-      createdAt: '2026-10-21T00:00:00.000Z',
-    },
-  ],
+  activeEditionDate: '',
+  editionsList: [],
 };
 
 export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
@@ -1203,23 +1115,13 @@ export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
   mobileSettings: DEFAULT_MOBILE_SETTINGS,
   tickerSpeed: 'slow',
   tickerSpeedSeconds: 90,
-  liveVideoSectionEnabled: true,
-  liveVideoYoutubeId: 'jfKfPfyJRdk',
-  liveVideoTitle: 'खबरी दोस्त डिजिटल स्टूडियो • लाइव वीडियो बुलेटिन',
+  liveVideoSectionEnabled: false,
+  liveVideoYoutubeId: '',
+  liveVideoTitle: '',
   liveFeedCoverageEnabled: false,
   headerLiveFeedLinkEnabled: true,
-  trendingTopics: [
-    '#गगनयान_मिशन',
-    '#टी20_वर्ल्डकप',
-    '#नीरज_चोपड़ा',
-    '#सेंसेक्स_81400',
-    '#संसद_सत्र',
-    '#डिजिटल_सुरक्षा',
-    '#मेक_इन_इंडिया',
-    '#वंदे_भारत_स्लीपर',
-    '#यूपी_एक्सप्रेसवे',
-  ],
-  pinnedTrendingArticleIds: ['news-1', 'news-3', 'news-12', 'news-4'],
+  trendingTopics: [],
+  pinnedTrendingArticleIds: [],
   spotlightLayout: DEFAULT_SPOTLIGHT_LAYOUT,
   displayOptions: {
     showExcerptOnMobile: false,
@@ -1244,11 +1146,11 @@ export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
     globalDesktopFontSize: 16,
     globalMobileFontSize: 15,
     sections: {},
-    headerFont: "'Rozha One', 'Noto Serif Devanagari', serif",
-    footerFont: "'Mukta', 'Noto Sans Devanagari', sans-serif",
-    headlineFont: "'Rozha One', 'Noto Serif Devanagari', serif",
-    bodyFont: "'Mukta', 'Noto Sans Devanagari', sans-serif",
-    metaFont: "'Mukta', 'Noto Sans Devanagari', sans-serif",
+    headerFont: "'Noto Sans Devanagari', 'Noto Sans', sans-serif",
+    footerFont: "'Noto Sans Devanagari', 'Noto Sans', sans-serif",
+    headlineFont: "'Noto Sans Devanagari', 'Noto Sans', sans-serif",
+    bodyFont: "'Noto Sans Devanagari', 'Noto Sans', sans-serif",
+    metaFont: "'Noto Sans Devanagari', 'Noto Sans', sans-serif",
     headlineWeight: 700,
     bodyWeight: 400,
     mobileScale: 'normal',
@@ -1316,9 +1218,9 @@ export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
     showSidebarAd: true,
     topAdType: 'adsense',
     sidebarAdType: 'private',
-    privateBannerUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&auto=format&fit=crop&q=80',
-    privateBannerLink: '#contact',
-    privateBannerTitle: 'खबरी दोस्त मीडिया नेटवर्क पर विज्ञापन दें | 5 लाख+ सक्रिय पाठकों तक ब्रांड पहुंच',
+    privateBannerUrl: '',
+    privateBannerLink: '',
+    privateBannerTitle: '',
     customScriptOrHtml: '',
     responsiveBreakpoints: {
       leaderboard: DEFAULT_ARTICLE_BANNER_BREAKPOINTS,
@@ -1340,7 +1242,7 @@ export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
   trendingConfig: DEFAULT_TRENDING_CONFIG,
 };
 
-export const INITIAL_SUBSCRIBERS: SubscriberItem[] = [
+const SAMPLE_SUBSCRIBERS: SubscriberItem[] = [
   {
     id: 'sub-1',
     email: 'khabridost.com@gmail.com',
@@ -1388,7 +1290,7 @@ export const INITIAL_SUBSCRIBERS: SubscriberItem[] = [
   },
 ];
 
-export const INITIAL_NOTIFICATIONS: PushNotificationItem[] = [
+const SAMPLE_NOTIFICATIONS: PushNotificationItem[] = [
   {
     id: 'notif-1',
     title: '🔴 ऐतिहासिक जीत: भारत पहुंचा T20 वर्ल्ड कप फाइनल में!',
@@ -1427,7 +1329,7 @@ export const INITIAL_NOTIFICATIONS: PushNotificationItem[] = [
   },
 ];
 
-export const INITIAL_VIDEOS: VideoNewsItem[] = [
+const SAMPLE_VIDEOS: VideoNewsItem[] = [
   {
     id: 'vid-1',
     title: '🔴 लाइव विशेष बुलेटिन: गगनयान परीक्षण की सफलता पर वैज्ञानिकों से विशेष बातचीत',
@@ -1466,7 +1368,7 @@ export const INITIAL_VIDEOS: VideoNewsItem[] = [
   },
 ];
 
-export const INITIAL_PHOTO_STORIES: PhotoStoryItem[] = [
+const SAMPLE_PHOTO_STORIES: PhotoStoryItem[] = [
   {
     id: 'photo-1',
     title: 'तस्वीरों में देखिए गगनयान के क्रू मॉड्यूल की समुद्र से सफल रिकवरी',
@@ -1501,7 +1403,7 @@ export const INITIAL_PHOTO_STORIES: PhotoStoryItem[] = [
   },
 ];
 
-export const INITIAL_MEDIA_ASSETS: MediaAsset[] = [
+const SAMPLE_MEDIA_ASSETS: MediaAsset[] = [
   {
     id: 'media-1',
     title: 'Gaganyaan Space Capsule Sea Recovery',
@@ -1737,7 +1639,7 @@ export const DEFAULT_MEDIA_FOLDERS: MediaFolder[] = [
   },
 ];
 
-export const INITIAL_EDITORIAL_USERS = [
+const SAMPLE_EDITORIAL_USERS = [
   {
     id: 'user-1',
     name: 'Khabri Dost Admin',
@@ -1844,7 +1746,7 @@ export const INITIAL_EDITORIAL_USERS = [
   },
 ];
 
-export const INITIAL_AD_CAMPAIGNS = [
+const SAMPLE_AD_CAMPAIGNS = [
   {
     id: 'ad-1',
     name: 'Top Leaderboard Direct Sponsor',
@@ -1889,7 +1791,7 @@ export const INITIAL_AD_CAMPAIGNS = [
   },
 ];
 
-export const INITIAL_LIVE_BLOGS: LiveBlogEvent[] = [
+const SAMPLE_LIVE_BLOGS: LiveBlogEvent[] = [
   {
     id: 'live-1',
     title: 'Political News 2026 Live Updates: संसद बजट सत्र एवं राष्ट्रीय राजनीतिक हलचल',
@@ -1975,7 +1877,7 @@ export const INITIAL_LIVE_BLOGS: LiveBlogEvent[] = [
   },
 ];
 
-export const INITIAL_CITIZEN_SUBMISSIONS: CitizenNewsSubmission[] = [
+const SAMPLE_CITIZEN_SUBMISSIONS: CitizenNewsSubmission[] = [
   {
     id: 'KD-CITIZEN-8491',
     title: 'वाराणसी-प्रयागराज राष्ट्रीय राजमार्ग पर भारी जलभराव से 10 किमी लंबा जाम',
@@ -2014,7 +1916,7 @@ export const INITIAL_CITIZEN_SUBMISSIONS: CitizenNewsSubmission[] = [
   },
 ];
 
-export const INITIAL_CONTACT_INQUIRIES: ContactInquiry[] = [
+const SAMPLE_CONTACT_INQUIRIES: ContactInquiry[] = [
   {
     id: 'inq-101',
     name: 'विक्रम राठौर (Vikram Rathore)',
@@ -2054,3 +1956,14 @@ export const INITIAL_CONTACT_INQUIRIES: ContactInquiry[] = [
   },
 ];
 
+/* Sample records exist only in demo builds (VITE_DEMO_CONTENT=true). Production starts empty. */
+export const INITIAL_SUBSCRIBERS: SubscriberItem[] = DEMO_CONTENT ? SAMPLE_SUBSCRIBERS : [];
+export const INITIAL_NOTIFICATIONS: PushNotificationItem[] = DEMO_CONTENT ? SAMPLE_NOTIFICATIONS : [];
+export const INITIAL_VIDEOS: VideoNewsItem[] = DEMO_CONTENT ? SAMPLE_VIDEOS : [];
+export const INITIAL_PHOTO_STORIES: PhotoStoryItem[] = DEMO_CONTENT ? SAMPLE_PHOTO_STORIES : [];
+export const INITIAL_MEDIA_ASSETS: MediaAsset[] = DEMO_CONTENT ? SAMPLE_MEDIA_ASSETS : [];
+export const INITIAL_EDITORIAL_USERS = DEMO_CONTENT ? SAMPLE_EDITORIAL_USERS : [];
+export const INITIAL_AD_CAMPAIGNS = DEMO_CONTENT ? SAMPLE_AD_CAMPAIGNS : [];
+export const INITIAL_LIVE_BLOGS: LiveBlogEvent[] = DEMO_CONTENT ? SAMPLE_LIVE_BLOGS : [];
+export const INITIAL_CITIZEN_SUBMISSIONS: CitizenNewsSubmission[] = DEMO_CONTENT ? SAMPLE_CITIZEN_SUBMISSIONS : [];
+export const INITIAL_CONTACT_INQUIRIES: ContactInquiry[] = DEMO_CONTENT ? SAMPLE_CONTACT_INQUIRIES : [];

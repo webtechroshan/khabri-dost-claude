@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { NewsArticle, NewsCategory, PortalSettings } from '../types/news';
 import { CATEGORIES } from '../data/seedNews';
-import { MAJOR_INDIAN_STATES } from './Header';
+import { MAJOR_INDIAN_STATES } from '../data/seedNews';
 import { formatHindiDate, formatHindiTimeAgo } from '../utils/hindiHelpers';
 
 interface ArchivePageViewProps {
@@ -272,7 +272,7 @@ export const ArchivePageView: React.FC<ArchivePageViewProps> = ({
                 <span className="text-slate-300">/</span>
                 <span className="text-red-600 font-bold">समाचार पुरालेख (Archive)</span>
               </div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black font-kd-headline tracking-tight text-slate-900 flex items-center gap-2">
+              <h1 className="kd-static-title flex items-center gap-2">
                 <CalendarIcon className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
                 <span>समाचार पुरालेख एवं ऐतिहासिक कवरेज</span>
               </h1>

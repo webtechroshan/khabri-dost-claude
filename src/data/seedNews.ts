@@ -1,3 +1,4 @@
+import { DEMO_CONTENT } from '../utils/articleVisibility';
 import { NewsArticle, CategoryItem } from '../types/news';
 
 export const CATEGORIES: CategoryItem[] = [
@@ -89,7 +90,7 @@ export const ALL_INDIAN_STATES_BY_REGION: StateRegionGroup[] = [
   },
 ];
 
-export const AUTHOR_PROFILES: Record<string, { role: string; photoURL: string }> = {
+const SAMPLE_AUTHOR_PROFILES: Record<string, { role: string; photoURL: string }> = {
   'आकाश शर्मा': {
     role: 'वरिष्ठ विज्ञान संपादक',
     photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
@@ -180,13 +181,24 @@ export const AUTHOR_PROFILES: Record<string, { role: string; photoURL: string }>
   },
 };
 
+/** Sample bylines (fictional people) exist only in demo builds. */
+export const AUTHOR_PROFILES: Record<string, { role: string; photoURL: string }> = DEMO_CONTENT ? SAMPLE_AUTHOR_PROFILES : {};
+
+/**
+ * Avatar for a byline without an uploaded photo: the author's initial on a neutral circle.
+ * Never a stock photo of a stranger.
+ */
 export function getAuthorPhoto(authorName?: string): string {
-  if (!authorName) {
-    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
-  }
-  const match = AUTHOR_PROFILES[authorName.trim()];
-  if (match) return match.photoURL;
-  return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+  const name = (authorName || '').trim();
+  if (DEMO_CONTENT && SAMPLE_AUTHOR_PROFILES[name]) return SAMPLE_AUTHOR_PROFILES[name].photoURL;
+  const initial = Array.from(name.replace(/^(डॉ\.?|श्री|Dr\.?)\s*/i, ''))[0] || 'ख';
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">` +
+    `<rect width="96" height="96" rx="48" fill="#fef2f2"/>` +
+    `<text x="48" y="60" font-family="Noto Sans Devanagari, Noto Sans, sans-serif" font-size="40" font-weight="700" fill="#b91c1c" text-anchor="middle">${initial
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 const RAW_NEWS: NewsArticle[] = [
@@ -879,12 +891,13 @@ const RAW_NEWS: NewsArticle[] = [
   },
 ];
 
-export const INITIAL_NEWS: NewsArticle[] = RAW_NEWS.map((art) => ({
+/** Sample articles: demo builds only. */
+export const INITIAL_NEWS: NewsArticle[] = (DEMO_CONTENT ? RAW_NEWS : []).map((art) => ({
   ...art,
   authorPhotoUrl: art.authorPhotoUrl || getAuthorPhoto(art.authorName),
 }));
 
-export const BREAKING_HEADLINES = [
+const SAMPLE_BREAKING_HEADLINES = [
   '🔴 गगनयान मिशन: क्रू मॉड्यूल पैराशूट रिकवरी का सफल परीक्षण, वैज्ञानिकों को बधाई',
   '🔴 टी-20 वर्ल्ड कप: भारत ने ऑस्ट्रेलिया को रोमांचक मैच में 5 विकेट से हराकर फाइनल में बनाई जगह',
   '🔴 शेयर बाज़ार: सेंसेक्स में 685 अंकों का उछाल, निफ्टी 24,860 के पार बंद हुआ',
@@ -894,3 +907,5 @@ export const BREAKING_HEADLINES = [
   '🔴 तेजस Mk-1A: पहला स्वदेशी उन्नत लड़ाकू विमान भारतीय वायुसेना को औपचारिक रूप से सौंपा गया',
   '🔴 वंदे भारत स्लीपर: 180 किमी/घंटा की गति से सफल स्पीड ट्रायल पूरा',
 ];
+
+export const BREAKING_HEADLINES: string[] = DEMO_CONTENT ? SAMPLE_BREAKING_HEADLINES : [];

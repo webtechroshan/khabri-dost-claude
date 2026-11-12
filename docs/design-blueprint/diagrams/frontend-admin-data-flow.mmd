@@ -1,0 +1,19 @@
+%% Frontend and admin data flow (proposed; same collections)
+sequenceDiagram
+  participant R as Reader browser
+  participant S as Express server
+  participant F as Firestore
+  participant E as Editor browser (admin)
+  participant G as Gemini
+  R->>S: GET /article/{id}
+  S->>F: REST read article (published only)
+  S-->>R: index.html with per-URL head + JSON-LD
+  R->>F: read settings + published articles (status == "published")
+  E->>F: Google sign-in → read users/{uid}.role
+  E->>F: write articles/{id} (draft / pending_review)
+  E->>S: POST /api/ai/* with Bearer ID token
+  S->>S: verify token, requireRole(reporter+)
+  S->>G: generate
+  S-->>E: AI draft (labelled)
+  E->>F: Editor sets status published (rules check role)
+  S->>F: sitemaps read published articles

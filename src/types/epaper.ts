@@ -8,7 +8,7 @@ export interface EPaperEditionRecord {
   date: string; // YYYY-MM-DD e.g. '2026-10-21'
   editionName: string; // e.g. 'राष्ट्रीय संस्करण (नई दिल्ली)'
   editionCode: string; // e.g. 'national' | 'delhi' | 'up' | 'bihar' | 'rajasthan' | 'mp'
-  pdfUrl: string; // Direct URL to uploaded PDF (e.g. '/assets/aistudio/Dainik_Jagran_National_20261021.pdf')
+  pdfUrl: string; // Direct URL to uploaded PDF (e.g. '/uploads/epaper/2026-11-05-national.pdf')
   pdfFileName?: string;
   pdfFileSize?: string; // e.g. '28.6 MB'
   pageCount: number;

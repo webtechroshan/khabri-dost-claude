@@ -58,15 +58,6 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
-  // Synchronize document title
-  useEffect(() => {
-    const originalTitle = document.title;
-    document.title = `ई-पेपर (${formatHindiNewspaperDate(selectedDate)}) - खबरी दोस्त`;
-    return () => {
-      document.title = originalTitle;
-    };
-  }, [selectedDate]);
-
   // Read URL params on mount
   useEffect(() => {
     try {
@@ -192,6 +183,7 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-100/70 pb-16 font-sans selection:bg-red-500 selection:text-white">
+      <h1 className="sr-only">{siteTitle} ई-पेपर</h1>
       {/* 1. BREADCRUMBS & TOP NAV STRIP */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs font-kd-meta flex-wrap gap-2">
@@ -243,9 +235,9 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
                 </div>
                 <div className="min-w-0 flex-1 leading-tight">
                   <div className="flex items-center space-x-1.5">
-                    <h1 className="font-bold text-sm text-slate-900 font-kd-headline truncate">
+                    <p className="font-bold text-sm text-slate-900 font-kd-headline truncate" aria-hidden="true">
                       {siteTitle} ई-पेपर
-                    </h1>
+                    </p>
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-mono shrink-0">
                       {totalPages}P
                     </span>
@@ -396,9 +388,9 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
                 </div>
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center space-x-2 flex-wrap">
-                    <h1 className="font-black text-xl sm:text-2xl text-slate-900 font-kd-headline tracking-tight">
+                    <p className="font-bold text-xl sm:text-2xl text-slate-900 font-kd-headline" aria-hidden="true">
                       {siteTitle} ई-पेपर
-                    </h1>
+                    </p>
                     <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-mono border border-red-200">
                       Digital Edition
                     </span>
@@ -555,7 +547,7 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
       )}
 
       {/* 4. FULL-PAGE EPAPER DIGITAL READER CANVAS (NO CRAMPED POPUP) */}
-      <main className="max-w-7xl mx-auto px-1.5 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-16 sm:pb-8">
+      <div className="max-w-7xl mx-auto px-1.5 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-16 sm:pb-8">
         <div className="bg-slate-100 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm border border-slate-300 flex flex-col h-[82vh] sm:h-[88vh] min-h-[560px] sm:min-h-[640px] relative">
           {resolvedMode.type === 'pdf' ? (
             <EPaperReader
@@ -598,7 +590,7 @@ export const EPaperPageView: React.FC<EPaperPageViewProps> = ({
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {/* 5. REGIONAL EDITIONS QUICK-SWITCH SECTION */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-4">
