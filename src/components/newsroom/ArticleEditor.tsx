@@ -55,6 +55,13 @@ export const ArticleEditor: React.FC<{ articleId?: string; go: (s: ScreenId, arg
   const loadedFor = useRef(articleId);
   const [ai, setAi] = useState<{ title?: string; desc?: string; tags?: string[]; source?: string } | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+  const [schedulerOn, setSchedulerOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((j) => setSchedulerOn(j.scheduler === 'on'))
+      .catch(() => setSchedulerOn(false));
+  }, []);
 
   /** Ask the server for SEO suggestions; the editor decides what to use. */
   const suggest = async () => {
@@ -165,6 +172,8 @@ export const ArticleEditor: React.FC<{ articleId?: string; go: (s: ScreenId, arg
         ...extra,
       };
       if (status !== 'scheduled') payload.scheduledFor = undefined;
+      // First time live: record when (later updates keep the original publish time).
+      if (status === 'published' && !existing?.publishedAt && !d.publishedAt) payload.publishedAt = new Date().toISOString();
       const newId = await saveArticle(payload);
       setId(newId);
       setD((p) => ({ ...p, status, ...extra }));
@@ -482,7 +491,11 @@ export const ArticleEditor: React.FC<{ articleId?: string; go: (s: ScreenId, arg
                     Schedule
                   </button>
                   <p className="kd-field__help">
-                    Scheduled articles go live when an editor has the newsroom open at or after that time (server scheduling is not set up yet).
+                    {schedulerOn === true
+                      ? 'The server publishes scheduled articles automatically at that time (checked every minute).'
+                      : schedulerOn === false
+                        ? 'Automatic scheduling is off on the server, so scheduled articles go live only while an editor has the newsroom open at or after that time.'
+                        : 'Checking whether automatic scheduling is on…'}
                   </p>
                   {d.status === 'published' && (
                     <button type="button" className="kd-btn kd-btn--danger kd-btn--block" disabled={saving} onClick={() => save('archived')}>

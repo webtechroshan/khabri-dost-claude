@@ -31,7 +31,8 @@
 | P2-1 | Newsroom (admin) rebuilt: 11 screens in one shell — Dashboard, News, Write article, Live coverage, Inbox, Media, Advertisements, SEO & sitemaps, Settings, Audience, Users & roles. English UI, role-aware navigation, only settings that change the site. Replaces the 29-tab panel. | Done | `src/components/newsroom/` | `tests/e2e/newsroom.mjs` (emulator sign-in: admin at 1366 and 390, reporter, reader) |
 | P2-2 | One article editor: visual/HTML body, deck, key points, image with alt/credit/caption, byline, SEO fields with search preview and optional AI suggestions, publishing checklist, role-aware actions (reporters: draft / submit for review; editors: publish / schedule / unpublish), revisions with restore, reader-visible corrections | Done | `src/components/newsroom/ArticleEditor.tsx` | newsroom test; rules tests |
 | P2-8 | CI on every pull request: typecheck, unit tests, build, Firestore rules, public browser matrix and newsroom test (emulators only) | Done | `.github/workflows/ci.yml`, `scripts/e2e-local.sh` | Runs on GitHub; not run inside this sandbox |
-| P2-3 … P2-7 | Server scheduling, Storage uploads, live timeline redesign, category pagination, corrections log page | **Not started** (corrections are shown on articles; scheduled posts publish while an editor has the newsroom open) | — | — |
+| P2-3 | Server scheduled publishing (see `25_SCHEDULED_PUBLISHING.md`); `publishedAt` publish dates | Done (needs a service account on the server) | `server/scheduler.ts` | unit, emulator and end-to-end tests |
+| P2-4 … P2-7 | Storage uploads, live timeline redesign, category pagination, corrections log page | **Not started** (corrections are shown on articles) | — | — |
 
 ## Test results (this session)
 

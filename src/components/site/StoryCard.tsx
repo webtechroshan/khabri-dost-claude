@@ -1,5 +1,6 @@
 import React from 'react';
 import type { NewsArticle } from '../../types/news';
+import { publishedTime } from '../../utils/articleVisibility';
 import { articleHref, categoryHref, categoryLabel, cardImage, timeAgo } from './format';
 
 export type StoryVariant = 'lead' | 'standard' | 'row' | 'text';
@@ -66,7 +67,7 @@ export const StoryCard: React.FC<Props> = ({
         </H>
         {showSummary && a.summary && <p className="kd-card__sum">{a.summary}</p>}
         <p className="kd-card__meta">
-          <time dateTime={a.createdAt}>{timeAgo(a.createdAt)}</time>
+          <time dateTime={publishedTime(a)}>{timeAgo(publishedTime(a))}</time>
           {a.location && <span>{a.location}</span>}
         </p>
       </div>

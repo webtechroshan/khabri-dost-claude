@@ -42,8 +42,8 @@ export const toHeadArticle = (a: NewsArticle): HeadArticle => ({
   tags: a.tags || [],
   seoTitle: a.seoTitle || '',
   seoDescription: a.seoDescription || '',
-  createdAt: a.createdAt,
-  updatedAt: a.updatedAt || a.createdAt,
+  createdAt: a.publishedAt || a.createdAt,
+  updatedAt: a.updatedAt || a.publishedAt || a.createdAt,
 });
 
 /**

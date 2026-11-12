@@ -4,7 +4,7 @@ import type { NewsArticle, PortalSettings } from '../../types/news';
 import { splitArticleContent, renderArticleBlock } from '../../utils/articleContentParser';
 import { getAuthorPhoto } from '../../data/seedNews';
 import { incrementArticleViews } from '../../services/newsService';
-import { isArticlePubliclyVisible } from '../../utils/articleVisibility';
+import { isArticlePubliclyVisible, publishedTime } from '../../utils/articleVisibility';
 import { StoryCard } from './StoryCard';
 import { AdPlacement } from './AdPlacement';
 import { articleHref, authorHref, categoryHref, categoryLabel, fullDate, tagHref, timeAgo } from './format';
@@ -72,7 +72,7 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
   const url = typeof window !== 'undefined' ? `${window.location.origin}${articleHref(a)}` : articleHref(a);
   const label = categoryLabel(a.category);
   const deck = (a.subtitle || a.summary || '').trim();
-  const updated = a.updatedAt && a.updatedAt !== a.createdAt && Date.parse(a.updatedAt) - Date.parse(a.createdAt) > 5 * 60_000;
+  const updated = a.updatedAt && a.updatedAt !== publishedTime(a) && Date.parse(a.updatedAt) - Date.parse(publishedTime(a)) > 5 * 60_000;
   const ads = settings.sidebarAdsConfig;
   const client = settings.googleServices?.adsenseClientId;
   const highlights = (a.highlights || []).map((h) => (h || '').trim()).filter((h) => h.length > 3).slice(0, 5);
@@ -90,12 +90,12 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
     () =>
       allArticles
         .filter((x) => x.id !== a.id && x.category === a.category)
-        .sort((x, y) => (Date.parse(y.createdAt) || 0) - (Date.parse(x.createdAt) || 0))
+        .sort((x, y) => (Date.parse(publishedTime(y)) || 0) - (Date.parse(publishedTime(x)) || 0))
         .slice(0, settings.sidebarWidgets?.relatedArticlesCount || 4),
     [allArticles, a.id, a.category, settings.sidebarWidgets?.relatedArticlesCount]
   );
   const latest = useMemo(
-    () => allArticles.filter((x) => x.id !== a.id).sort((x, y) => (Date.parse(y.createdAt) || 0) - (Date.parse(x.createdAt) || 0)).slice(0, 6),
+    () => allArticles.filter((x) => x.id !== a.id).sort((x, y) => (Date.parse(publishedTime(y)) || 0) - (Date.parse(publishedTime(x)) || 0)).slice(0, 6),
     [allArticles, a.id]
   );
 
@@ -134,7 +134,7 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
               <p className="kd-meta">
                 {a.location && <span>{a.location} · </span>}
                 <span>
-                  प्रकाशित: <time dateTime={a.createdAt}>{fullDate(a.createdAt, true)}</time>
+                  प्रकाशित: <time dateTime={publishedTime(a)}>{fullDate(publishedTime(a), true)}</time>
                 </span>
                 {updated && (
                   <span>
@@ -262,7 +262,7 @@ export const ArticleView: React.FC<Props> = ({ article: a, allArticles, settings
                   <li key={x.id}>
                     <a href={articleHref(x)}>{x.title}</a>
                     <p className="kd-meta">
-                      <time dateTime={x.createdAt}>{timeAgo(x.createdAt)}</time>
+                      <time dateTime={publishedTime(x)}>{timeAgo(publishedTime(x))}</time>
                     </p>
                   </li>
                 ))}

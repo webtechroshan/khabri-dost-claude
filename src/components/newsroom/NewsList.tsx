@@ -28,7 +28,7 @@ export const NewsList: React.FC<{ initialTab?: string; go: (s: ScreenId, arg?: s
 
   const setStatus = async (a: NewsArticle, status: NewsArticle['status']) => {
     try {
-      await saveArticle({ ...a, status, ...(status === 'published' && !a.scheduledFor ? {} : {}) });
+      await saveArticle({ ...a, status, ...(status === 'published' && !a.publishedAt ? { publishedAt: new Date().toISOString() } : {}) });
       notify(`“${a.title.slice(0, 40)}” is now ${STATUS_LABELS[status || ''] || status}.`);
     } catch {
       /* saveArticle already reported the error */
