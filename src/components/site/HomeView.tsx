@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { NewsArticle, PortalSettings } from '../../types/news';
 import { StoryCard } from './StoryCard';
+import { publishedTime } from '../../utils/articleVisibility';
 import { AdPlacement } from './AdPlacement';
 import { articleHref, categoryHref, timeAgo } from './format';
 import type { NavCategory } from './SiteHeader';
@@ -20,7 +21,7 @@ interface Props {
 }
 
 const STEP = 12;
-const byNewest = (a: NewsArticle, b: NewsArticle) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
+const byNewest = (a: NewsArticle, b: NewsArticle) => (Date.parse(publishedTime(b)) || 0) - (Date.parse(publishedTime(a)) || 0);
 
 const Skeleton: React.FC = () => (
   <div className="kd-container kd-page" aria-busy="true" aria-live="polite">
@@ -51,7 +52,7 @@ const LatestList: React.FC<{ items: NewsArticle[]; onOpen: (a: NewsArticle) => v
           {a.title}
         </a>
         <p className="kd-meta">
-          <time dateTime={a.createdAt}>{timeAgo(a.createdAt)}</time>
+          <time dateTime={publishedTime(a)}>{timeAgo(publishedTime(a))}</time>
         </p>
       </li>
     ))}
@@ -90,7 +91,7 @@ export const HomeView: React.FC<Props> = ({ articles, filtered, categories, cate
   const mostRead = useMemo(() => {
     const weekAgo = Date.now() - 7 * 86400_000;
     return sorted
-      .filter((a) => (a.viewsCount || 0) > 0 && (Date.parse(a.createdAt) || 0) >= weekAgo)
+      .filter((a) => (a.viewsCount || 0) > 0 && (Date.parse(publishedTime(a)) || 0) >= weekAgo)
       .sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0))
       .slice(0, 5);
   }, [sorted]);

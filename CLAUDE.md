@@ -20,8 +20,9 @@ Design blueprint and reports: `docs/design-blueprint/` (start with `00_START_HER
 
 ## Rules that must not be broken
 
-- `firestore.rules` is the security boundary. The server has no admin credentials; it verifies Firebase ID tokens
-  (`server/auth.ts`) and reads Firestore over REST under the same rules. Keep role lists identical in
+- `firestore.rules` is the security boundary. The server verifies Firebase ID tokens (`server/auth.ts`) and reads
+  Firestore over REST under the same rules. The only admin credential is the optional service account used by the
+  scheduled-publishing job (`server/scheduler.ts`, `FIREBASE_SERVICE_ACCOUNT_FILE`); use it for nothing else. Keep role lists identical in
   `firestore.rules` and `src/utils/roles.ts`.
 - Staff sign in with Google only; roles come from `staff/{email}` (owner emails are the bootstrap admins).
 - The admin is `src/components/newsroom/` (11 screens, one editor). Show only settings that change the public site.

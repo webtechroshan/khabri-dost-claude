@@ -118,6 +118,10 @@ export interface NewsArticle {
   };
   createdAt: string;
   updatedAt?: string;
+  /** When the article first went live (set by editors' Publish or the server scheduler). */
+  publishedAt?: string;
+  /** 'scheduler' when the server published it on schedule. */
+  publishedBy?: string;
 }
 
 export interface MediaAsset {

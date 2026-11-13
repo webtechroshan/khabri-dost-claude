@@ -39,7 +39,8 @@ export function toArticle(doc: { name?: string; fields?: Record<string, FsValue>
   const id = (doc.name || '').split('/').pop() || '';
   const title = str(f.title).trim();
   if (!id || !title || str(f.status) !== 'published') return null;
-  const createdAt = str(f.createdAt) || doc.updateTime || '';
+  // The date readers and search engines see: when it went live, else when it was created.
+  const createdAt = str(f.publishedAt) || str(f.createdAt) || doc.updateTime || '';
   return {
     id,
     title,
@@ -119,6 +120,12 @@ export async function getPublishedArticle(id: string): Promise<Lookup> {
   } catch {
     return { state: 'unknown' };
   }
+}
+
+/** Drop cached article lists (after the scheduler publishes, so sitemaps and pages update at once). */
+export function clearContentCache() {
+  listCache = null;
+  oneCache.clear();
 }
 
 /** Test hook. */

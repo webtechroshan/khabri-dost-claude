@@ -1089,6 +1089,7 @@ export async function checkAndPublishScheduledArticles(
       return {
         ...a,
         status: 'published' as const,
+        publishedAt: a.scheduledFor,
         updatedAt: new Date().toISOString(),
       };
     }
@@ -1102,6 +1103,7 @@ export async function checkAndPublishScheduledArticles(
         const articleRef = doc(db, ARTICLES_COLLECTION, article.id);
         await updateDoc(articleRef, {
           status: 'published',
+          publishedAt: article.scheduledFor || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
       } catch (err) {

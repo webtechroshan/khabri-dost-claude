@@ -16,7 +16,7 @@ interface Props {
 
 const STEP = 12;
 const key = (s: string) => s.replace(/^#/, '').trim().toLocaleLowerCase('hi');
-const time = (a: NewsArticle) => Date.parse(a.createdAt) || 0;
+const time = (a: NewsArticle) => Date.parse(a.publishedAt || a.createdAt) || 0;
 
 /**
  * Author pages (/author/:name), tag pages (/tag/:tag) and the video listing (/videos).

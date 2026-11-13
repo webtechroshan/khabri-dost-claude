@@ -6,6 +6,8 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { requireRole } from './server/auth';
 import { registerSeoRoutes, resolvePage, renderHead, injectHead } from './server/seo';
+import { startScheduler, schedulerStatus } from './server/scheduler';
+import { clearContentCache } from './server/content';
 
 dotenv.config();
 
@@ -1178,7 +1180,13 @@ registerSeoRoutes(app);
 
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', serverTime: new Date().toISOString() });
+  const sch = schedulerStatus();
+  // Only on/off is public; details are for staff (/api/scheduler/status).
+  res.json({ status: 'ok', serverTime: new Date().toISOString(), scheduler: sch.state });
+});
+
+app.get('/api/scheduler/status', requireRole('editor'), (_req, res) => {
+  res.json(schedulerStatus());
 });
 
 // Unknown API paths are JSON 404s, not the web page.
@@ -1243,6 +1251,9 @@ async function startServer() {
       }
     });
   }
+
+  // Publish scheduled articles on time (needs a service account; see server/scheduler.ts).
+  startScheduler(() => clearContentCache()).catch((e) => console.warn('Scheduler failed to start:', e));
 
   const server = app.listen(Number(PORT), HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);

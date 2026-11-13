@@ -61,6 +61,22 @@ for (let i = 0; i < 24; i++) {
   });
 }
 
+// Two scheduled articles: one overdue (the server scheduler must publish it), one in the future.
+for (const [id, offsetMin] of [['test_sched_due', -2], ['test_sched_future', 24 * 60]]) {
+  const at = new Date(now + offsetMin * 60_000).toISOString();
+  docs.push({
+    ...docs[1],
+    id,
+    title: `परीक्षण: शेड्यूल की गई ख़बर (${id === 'test_sched_due' ? 'समय हो चुका' : 'भविष्य'})`,
+    status: 'scheduled',
+    scheduledFor: at,
+    isBreaking: false,
+    isTopStory: false,
+    createdAt: new Date(now - 3 * 3600_000).toISOString(),
+    updatedAt: new Date(now - 3 * 3600_000).toISOString(),
+  });
+}
+
 for (const d of docs) {
   const fields = Object.fromEntries(Object.entries(d).map(([k, val]) => [k, v(val)]));
   const res = await fetch(`${base}/articles/${d.id}`, {
